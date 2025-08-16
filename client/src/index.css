@@ -109,4 +109,13 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
+  
+}
+.after\:calendar-inner-shadow::after {
+  box-shadow: inset -32px 0 40px rgba(0,0,0,0.08);
+  /* Light mode: lighter shadow */
+}
+.dark .after\:calendar-inner-shadow::after {
+  box-shadow: inset -32px 0 40px rgba(0,0,0,0.22);
+  /* Dark mode: darker shadow */
 }
