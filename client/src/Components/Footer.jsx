@@ -41,7 +41,7 @@ const BrandingFooter = () => {
       viewport={{ once: true, amount: 0.5 }} // Animation runs only once
     >
       {/* Gradient overlay from top to bottom */}
-      <div className="absolute top-0 left-0 right-0 z-40 w-full h-[200px] bg-gradient-to-b from-background/90 via-background/90 to-transparent pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 z-40 w-full h-[200px] bg-gradient-to-b from-background via-background/80 to-transparent pointer-events-none" />
       
       {/* --- Element 2: "Codemesh" --- */}
       <motion.h1

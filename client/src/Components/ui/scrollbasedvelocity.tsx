@@ -130,6 +130,21 @@ export const VelocityScroll: React.FC<VelocityScrollProps> = ({
 
   return (
     <section className="relative w-full">
+      {/* Gradient overlays */}
+      <div
+        className="pointer-events-none absolute left-0 top-0 h-full w-24 z-10"
+        style={{
+          background:
+            "linear-gradient(to right, hsl(var(--background)), transparent)",
+        }}
+      />
+      <div
+        className="pointer-events-none absolute right-0 top-0 h-full w-24 z-10"
+        style={{
+          background:
+            "linear-gradient(to left, hsl(var(--background)), transparent)",
+        }}
+      />
       <ParallaxText
         baseVelocity={default_velocity}
         className={className}

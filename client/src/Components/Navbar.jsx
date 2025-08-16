@@ -71,7 +71,7 @@ const Navbar = () => {
 
 
     const navClasses = `
-        transition-transform transition-opacity duration-300 ease-out w-full z-300
+        transition-transform transition-opacity duration-300 ease-out w-full z-50
         ${isScrolled 
             ? 'fixed top-4 inset-x-0 mx-auto w-[calc(100%-2rem)] max-w-6xl rounded-full bg-card/90 backdrop-blur-xl shadow-lg border border-border px-4 py-1 animate-slide-down-fade opacity-40' 
             : 'static px-5 py-2'
@@ -80,7 +80,7 @@ const Navbar = () => {
 
     return (
         <nav id="main-nav" className={navClasses}>
-            <div className="container mx-auto flex items-center justify-between">
+            <div className="container mx-auto flex z-50 items-center justify-between">
                 {/* Logo */}
                 <a href="#" className="flex items-center space-x-2">
                     <img

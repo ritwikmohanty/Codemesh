@@ -80,11 +80,8 @@ const Grid = () => {
             
             {/* Layer 2: The background visual area */}
             <div className="relative group bg-card text-card-foreground rounded-lg shadow-md overflow-hidden transition-all hover:shadow-lg">
-                 <div className="relative h-64 bg-muted/50 overflow-hidden z-10">
-                 <div
-    className="absolute right-0 top-0 bottom-0 z-40 h-full w-[100px] bg-gradient-to-l from-[rgba(255,255,255,0.7)] dark:from-[rgba(0,0,0,0.6)] via-[rgba(255,255,255,0.7)] dark:via-[rgba(0,0,0,0.6)] to-transparent pointer-events-none"
-  />
-                 <div className="absolute top-0 left-0 z-0 transition-transform duration-300 ease-in-out transform translate-x-20 translate-y-[60px] group-hover:translate-x-16 group-hover:translate-y-[40px]">
+                 <div className="relative h-64 bg-muted/50 overflow-hidden">
+                 <div className="absolute top-0 left-0 transition-transform duration-300 ease-in-out transform translate-x-20 translate-y-[60px] group-hover:translate-x-16 group-hover:translate-y-[40px]">
                  <img
                     src="/calender_light.png"
                     alt="Contest Calendar"
@@ -98,8 +95,11 @@ const Grid = () => {
                     draggable={false}
                     />
                     </div>
+                 <div
+    className="absolute right-0 top-0 bottom-0 z-5 h-full w-[100px] bg-gradient-to-l from-[rgba(255,255,255,0.7)] dark:from-[rgba(0,0,0,0.6)] via-[rgba(255,255,255,0.6)] dark:via-[rgba(0,0,0,0.5)] to-transparent pointer-events-none"
+  />
                     </div>
-                    <div className="relative z-20 p-6">
+                    <div className="relative p-6">
                     <div className="flex items-center gap-3 mb-2">
                     <CalendarIcon />
                     <h3 className="text-lg font-semibold font-sans">Never Miss a Contest Again</h3>
