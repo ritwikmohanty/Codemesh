@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useId } from 'react';
+import { useLocation } from 'react-router-dom';
 import LogoLight from '/codemesh.png';
 import LogoDark from '/codemeshdark.png';
 import { MoonIcon, SunIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import SignIn from './signin';
+import SignUp from './signup';
 
 const MenuIcon = () => (
      <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
@@ -55,10 +58,11 @@ const ThemeSwitch = () => {
 };
 
 const Navbar = () => {
-
     const [isScrolled, setIsScrolled] = useState(false);
-
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false);
+    const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false);
+    const location = useLocation();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -107,8 +111,22 @@ const Navbar = () => {
 
                 {/* Action Buttons & Theme Toggle */}
                 <div className="hidden md:flex items-center space-x-2">
-                    <a href="#" className="px-4 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted bg-transparent text-foreground">Sign In</a>
-                    <a href="#" className="px-4 py-2 text-sm font-semibold rounded-md transition-colors bg-primary text-primary-foreground">Get Started</a>
+                    <SignIn 
+                        isDialogOpen={isSignInDialogOpen} 
+                        onOpenChange={setIsSignInDialogOpen}
+                    >
+                        <button className="px-4 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted bg-transparent text-foreground">
+                            Sign In
+                        </button>
+                    </SignIn>
+                    <SignUp 
+                        isDialogOpen={isSignUpDialogOpen} 
+                        onOpenChange={setIsSignUpDialogOpen}
+                    >
+                        <button className="px-4 py-2 text-sm font-semibold rounded-md transition-colors bg-primary text-primary-foreground">
+                            Get Started
+                        </button>
+                    </SignUp>
                     <ThemeSwitch />
                 </div>
                 
@@ -131,8 +149,22 @@ const Navbar = () => {
                     </div>
                     <div className="pt-4 pb-3 border-t border-border">
                         <div className="flex items-center px-4 space-x-2">
-                            <a href="#" className="w-full text-center px-4 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted bg-transparent text-foreground">Sign In</a>
-                            <a href="#" className="w-full text-center px-4 py-2 text-sm font-semibold rounded-md transition-colors bg-primary text-primary-foreground">Get Started</a>
+                            <SignIn 
+                                isDialogOpen={isSignInDialogOpen} 
+                                onOpenChange={setIsSignInDialogOpen}
+                            >
+                                <button className="w-full text-center px-4 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted bg-transparent text-foreground">
+                                    Sign In
+                                </button>
+                            </SignIn>
+                            <SignUp 
+                                isDialogOpen={isSignUpDialogOpen} 
+                                onOpenChange={setIsSignUpDialogOpen}
+                            >
+                                <button className="w-full text-center px-4 py-2 text-sm font-semibold rounded-md transition-colors bg-primary text-primary-foreground">
+                                    Get Started
+                                </button>
+                            </SignUp>
                         </div>
                         <div className="mt-3 px-4">
                             <ThemeSwitch />

@@ -39,7 +39,7 @@ export default function GradientHero() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="from-primary/10 via-foreground/85 to-foreground/50 bg-gradient-to-tl bg-clip-text pb-2 text-center text-4xl font-bold tracking-tighter text-balance text-transparent sm:text-5xl md:text-6xl lg:text-7xl"
           >
-            Track. Compete. Improve
+            Track. Compete. Improve.
           </motion.h1>
 
           {/* Description */}
