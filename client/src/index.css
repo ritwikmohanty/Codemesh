@@ -111,6 +111,50 @@
   }
   
 }
+@layer utilities {
+  .calendar-cell {
+    aspect-ratio: 1;
+    min-height: 60px;
+  }
+  
+  @media (min-width: 640px) {
+    .calendar-cell {
+      min-height: 70px;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .calendar-cell {
+      min-height: 80px;
+    }
+  }
+  
+  @media (min-width: 1280px) {
+    .calendar-cell {
+      min-height: 70px;
+    }
+  }
+  
+  @media (min-width: 1536px) {
+    .calendar-cell {
+      min-height: 75px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .calendar-cell {
+      min-height: 50px;
+    }
+  }
+  
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
 .after\:calendar-inner-shadow::after {
   box-shadow: inset -32px 0 40px rgba(0,0,0,0.08);
   /* Light mode: lighter shadow */
@@ -118,4 +162,13 @@
 .dark .after\:calendar-inner-shadow::after {
   box-shadow: inset -32px 0 40px rgba(0,0,0,0.22);
   /* Dark mode: darker shadow */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
 }

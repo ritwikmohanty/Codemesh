@@ -102,10 +102,10 @@ const Navbar = () => {
                 {/* Desktop Navigation Links */}
                 <div className="hidden md:flex items-center space-x-2">
                     <ul className="flex items-center space-x-2">
-                        <li><a href="#" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Home</a></li>
+                        <li><a href="/" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Home</a></li>
                         <li><a href="#" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Portfolio</a></li>
                         <li><a href="#" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Leaderboard</a></li>
-                        <li><a href="#" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Calendar</a></li>
+                        <li><a href="/calendar" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Calendar</a></li>
                     </ul>
                 </div>
 
@@ -142,10 +142,10 @@ const Navbar = () => {
             {isMenuOpen && (
                 <div className="md:hidden mt-2 rounded-lg shadow-lg bg-background">
                     <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                        <a href="#" className="block px-3 py-2 rounded-md text-base font-medium hover:text-primary hover:bg-muted">Home</a>
+                        <a href="/" className="block px-3 py-2 rounded-md text-base font-medium hover:text-primary hover:bg-muted">Home</a>
                         <a href="#" className="block px-3 py-2 rounded-md text-base font-medium hover:text-primary hover:bg-muted">Portfolio</a>
                         <a href="#" className="block px-3 py-2 rounded-md text-base font-medium hover:text-primary hover:bg-muted">Leaderboard</a>
-                        <a href="#" className="block px-3 py-2 rounded-md text-base font-medium hover:text-primary hover:bg-muted">Calendar</a>
+                        <a href="/calendar" className="block px-3 py-2 rounded-md text-base font-medium hover:text-primary hover:bg-muted">Calendar</a>
                     </div>
                     <div className="pt-4 pb-3 border-t border-border">
                         <div className="flex items-center px-4 space-x-2">

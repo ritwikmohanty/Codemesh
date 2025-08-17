@@ -13,6 +13,10 @@ import passport from "./config/passport.js";
 
 // Import routes
 import authRoutes from './routes/authRoutes.js';
+import contestRoutes from './routes/contestRoutes.js';
+
+// Import scheduler
+import { startContestScheduler } from './schedulers/contestScheduler.js';
 
 const app = express();
 
@@ -67,6 +71,7 @@ app.get("/", (req, res) => {
 // API routes
 try {
   app.use('/api/v1', authRoutes);
+  app.use('/api/v1', contestRoutes);
 } catch (routeErr) {
   console.error('Route registration error:', routeErr);
   throw routeErr;
@@ -90,6 +95,10 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 3000;
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      // Start contest scheduler after server is running
+      startContestScheduler();
+    });
   })
   .catch(err => console.error("MongoDB connection error:", err));
