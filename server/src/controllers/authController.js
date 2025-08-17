@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import passport from 'passport';
 import User from '../models/User.js';
 import Profile from '../models/Profile.js';
 import LeaderboardEntry from '../models/LeaderboardEntry.js';
@@ -194,6 +195,52 @@ export const refreshToken = async (req, res) => {
     res.json({ token: newToken });
   } catch (error) {
     console.error('Refresh token error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Google OAuth initiate
+export const googleAuth = passport.authenticate('google', {
+  scope: ['profile', 'email']
+});
+
+// Google OAuth callback
+export const googleCallback = (req, res, next) => {
+  passport.authenticate('google', { session: false }, (err, user, info) => {
+    if (err) {
+      console.error('Google OAuth error:', err);
+      return res.redirect(`${process.env.CLIENT_URL}?error=oauth_error`);
+    }
+    
+    if (!user) {
+      return res.redirect(`${process.env.CLIENT_URL}?error=oauth_failed`);
+    }
+
+    // Generate JWT token
+    const token = generateToken(user._id);
+    
+    // Redirect to frontend with token
+    res.redirect(`${process.env.CLIENT_URL}?token=${token}&success=oauth_success`);
+  })(req, res, next);
+};
+
+// Get user data for OAuth success
+export const getOAuthUser = async (req, res) => {
+  try {
+    const userData = {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      username: req.user.username,
+      avatarUrl: req.user.avatarUrl,
+      isEmailVerified: req.user.isEmailVerified,
+      authProvider: req.user.authProvider,
+      createdAt: req.user.createdAt
+    };
+
+    res.json({ user: userData });
+  } catch (error) {
+    console.error('Get OAuth user error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

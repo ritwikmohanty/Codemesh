@@ -18,7 +18,7 @@ export default function SignUp({ children, isDialogOpen, onOpenChange }) {
   const id = useId()
   const navigate = useNavigate()
   const location = useLocation()
-  const { signup, loading, error, clearError } = useAuth()
+  const { signup, signInWithGoogle, loading, error, clearError } = useAuth()
   
   const [formData, setFormData] = useState({
     name: '',
@@ -53,6 +53,10 @@ export default function SignUp({ children, isDialogOpen, onOpenChange }) {
       // Error is handled by context
       console.error('Sign up failed:', err.message)
     }
+  }
+
+  const handleGoogleSignUp = () => {
+    signInWithGoogle();
   }
 
   return (
@@ -145,7 +149,14 @@ export default function SignUp({ children, isDialogOpen, onOpenChange }) {
           <span className="text-muted-foreground text-xs">Or</span>
         </div>
 
-        <Button variant="outline" disabled={loading}>Continue with Google</Button>
+        <Button 
+          variant="outline" 
+          disabled={loading}
+          onClick={handleGoogleSignUp}
+          type="button"
+        >
+          Continue with Google
+        </Button>
 
         <p className="text-muted-foreground text-center text-xs">
           By signing up you agree to our{" "}

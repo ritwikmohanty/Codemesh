@@ -19,7 +19,7 @@ export default function SignIn({ children, isDialogOpen, onOpenChange }) {
   const id = useId()
   const navigate = useNavigate()
   const location = useLocation()
-  const { signin, loading, error, clearError } = useAuth()
+  const { signin, signInWithGoogle, loading, error, clearError } = useAuth()
   
   const [formData, setFormData] = useState({
     email: '',
@@ -57,6 +57,10 @@ export default function SignIn({ children, isDialogOpen, onOpenChange }) {
       // Error is handled by context
       console.error('Sign in failed:', err.message)
     }
+  }
+
+  const handleGoogleSignIn = () => {
+    signInWithGoogle();
   }
 
   return (
@@ -155,7 +159,14 @@ export default function SignIn({ children, isDialogOpen, onOpenChange }) {
           <span className="text-muted-foreground text-xs">Or</span>
         </div>
 
-        <Button variant="outline" disabled={loading}>Login with Google</Button>
+        <Button 
+          variant="outline" 
+          disabled={loading}
+          onClick={handleGoogleSignIn}
+          type="button"
+        >
+          Continue with Google
+        </Button>
       </DialogContent>
     </Dialog>
   )

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { api, setAuthToken, removeAuthToken } from '../utils/api';
+import { api, setAuthToken, removeAuthToken } from '../utils/api.jsx';
 
 const AuthContext = createContext();
 
@@ -47,10 +47,31 @@ const initialState = {
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       checkAuth();
+    }
+  }, []);
+
+  // Check for OAuth callback tokens in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const success = urlParams.get('success');
+    const error = urlParams.get('error');
+
+    if (token && success === 'oauth_success') {
+      setAuthToken(token);
+      checkAuth();
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (error) {
+      dispatch({ type: 'AUTH_ERROR', payload: 'Authentication failed. Please try again.' });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 
@@ -91,6 +112,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const signInWithGoogle = () => {
+    window.location.href = `${API_URL}/auth/google`;
+  };
+
   const logout = () => {
     removeAuthToken();
     dispatch({ type: 'LOGOUT' });
@@ -106,6 +131,7 @@ export const AuthProvider = ({ children }) => {
         ...state,
         signup,
         signin,
+        signInWithGoogle,
         logout,
         clearError,
       }}

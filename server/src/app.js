@@ -1,17 +1,27 @@
+import './config/env.js';
+
 import express from "express";
 import mongoose from "mongoose";
-import dotenv from "dotenv";
 import cors from "cors";
+import session from "express-session";
 
 // Import models to register them with Mongoose
 import './models/User.js';
 
+// Import passport AFTER dotenv.config()
+import passport from "./config/passport.js";
+
 // Import routes
 import authRoutes from './routes/authRoutes.js';
 
-dotenv.config();
-
 const app = express();
+
+// Validate required environment variables
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  console.error('Missing required Google OAuth environment variables');
+  console.error('Please ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set in .env file');
+  process.exit(1);
+}
 
 // Middlewares
 app.use(express.json({ limit: '10mb' }));
@@ -19,6 +29,35 @@ app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true
 }));
+
+// Session configuration for Passport
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-session-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Passport serialization
+passport.serializeUser((user, done) => {
+  done(null, user._id);
+});
+
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await mongoose.model('User').findById(id).select('-password');
+    done(null, user);
+  } catch (error) {
+    done(error, null);
+  }
+});
 
 // Routes
 app.get("/", (req, res) => {

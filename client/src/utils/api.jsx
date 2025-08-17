@@ -8,28 +8,24 @@ class ApiError extends Error {
   }
 }
 
-const getAuthToken = () => {
-  return localStorage.getItem('token');
-};
-
-const makeRequest = async (url, options = {}) => {
-  const token = getAuthToken();
-  
+const apiRequest = async (endpoint, options = {}) => {
+  const url = `${API_BASE_URL}${endpoint}`;
   const config = {
     headers: {
       'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     },
     ...options,
   };
 
-  if (config.body && typeof config.body === 'object') {
-    config.body = JSON.stringify(config.body);
+  // Add auth token if available
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}${url}`, config);
+    const response = await fetch(url, config);
     const data = await response.json();
 
     if (!response.ok) {
@@ -41,22 +37,22 @@ const makeRequest = async (url, options = {}) => {
     if (error instanceof ApiError) {
       throw error;
     }
-    throw new ApiError('Network error', 0, null);
+    throw new ApiError('Network error occurred', 0, null);
   }
 };
 
 export const api = {
   auth: {
-    signup: (userData) => makeRequest('/signup', {
+    signup: (userData) => apiRequest('/signup', {
       method: 'POST',
-      body: userData,
+      body: JSON.stringify(userData),
     }),
-    signin: (credentials) => makeRequest('/signin', {
+    signin: (credentials) => apiRequest('/signin', {
       method: 'POST',
-      body: credentials,
+      body: JSON.stringify(credentials),
     }),
-    getProfile: () => makeRequest('/profile'),
-    refreshToken: () => makeRequest('/refresh', { method: 'POST' }),
+    getProfile: () => apiRequest('/profile'),
+    refreshToken: () => apiRequest('/refresh', { method: 'POST' }),
   },
 };
 

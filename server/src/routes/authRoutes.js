@@ -1,5 +1,13 @@
 import express from 'express';
-import { signup, signin, getProfile, refreshToken } from '../controllers/authController.js';
+import { 
+  signup, 
+  signin, 
+  getProfile, 
+  refreshToken,
+  googleAuth,
+  googleCallback,
+  getOAuthUser
+} from '../controllers/authController.js';
 import { authenticateToken } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -8,9 +16,14 @@ const router = express.Router();
 router.post('/signup', signup);
 router.post('/signin', signin);
 
+// Google OAuth routes
+router.get('/auth/google', googleAuth);
+router.get('/auth/google/callback', googleCallback);
+
 // Protected routes
 router.get('/profile', authenticateToken, getProfile);
 router.post('/refresh', authenticateToken, refreshToken);
+router.get('/oauth/user', authenticateToken, getOAuthUser);
 
 // All route paths are valid. If you add new routes, ensure no stray ':' or malformed parameters.
 
