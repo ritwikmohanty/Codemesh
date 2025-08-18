@@ -4,7 +4,7 @@ const contestSchema = new mongoose.Schema({
   platform: {
     type: String,
     required: true,
-    enum: ['codeforces', 'leetcode', 'codechef', 'hackerrank', 'atcoder']
+    enum: ['codeforces', 'leetcode', 'codechef', 'hackerrank', 'atcoder', 'geeksforgeeks', 'code360', 'hackerearth']
   },
   contestIdOnPlatform: {
     type: String,

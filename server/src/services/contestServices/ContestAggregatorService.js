@@ -1,12 +1,10 @@
-import { CodeforcesService } from './CodeforcesService.js';
-import { LeetCodeService } from './LeetCodeService.js';
+import { CListService } from './CListService.js';
 import Contest from '../../models/Contest.js';
 
 export class ContestAggregatorService {
   constructor() {
     this.services = [
-      new CodeforcesService(),
-      new LeetCodeService()
+      new CListService()
     ];
   }
 
@@ -264,3 +262,4 @@ export class ContestAggregatorService {
     }
   }
 }
+  

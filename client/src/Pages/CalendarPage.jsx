@@ -42,6 +42,9 @@ const platforms = [
   { id: 'atcoder', name: 'AtCoder' },
   { id: 'leetcode', name: 'LeetCode' },
   { id: 'hackerrank', name: 'HackerRank' },
+  { id: 'geeksforgeeks', name: 'GeeksforGeeks' },
+  { id: 'code360', name: 'Code360' },
+  { id: 'hackerearth', name: 'HackerEarth' },
 ];
 
 // Contest difficulties
@@ -198,11 +201,26 @@ const CalendarPage = () => {
         return false;
       }
       
-      const platformMatch = selectedPlatform === 'all' || contest.platform === platforms.find(p => p.id === selectedPlatform)?.name;
-      const difficultyMatch = selectedDifficulty === 'all' || contest.difficulty === difficulties.find(d => d.id === selectedDifficulty)?.name;
+      // Platform filter - compare lowercase values
+      const platformMatch = selectedPlatform === 'all' || 
+        contest.platform.toLowerCase() === selectedPlatform.toLowerCase();
       
-      // Parse duration more safely
-      const durationHours = parseInt(contest.duration) || 0;
+      // Difficulty filter - compare with proper capitalization
+      const difficultyMatch = selectedDifficulty === 'all' || 
+        contest.difficulty === capitalize(selectedDifficulty);
+      
+      // Parse duration more safely - extract hours from duration string
+      let durationHours = 0;
+      if (contest.durationSeconds) {
+        durationHours = contest.durationSeconds / 3600;
+      } else if (contest.duration) {
+        // Extract hours from duration string like "2h 30m" or "90m"
+        const hourMatch = contest.duration.match(/(\d+)h/);
+        const minuteMatch = contest.duration.match(/(\d+)m/);
+        durationHours = (hourMatch ? parseInt(hourMatch[1]) : 0) + 
+                      (minuteMatch ? parseInt(minuteMatch[1]) / 60 : 0);
+      }
+      
       const durationMatch = selectedDuration === 'all' || 
         (selectedDuration === 'short' && durationHours < 2) ||
         (selectedDuration === 'medium' && durationHours >= 2 && durationHours <= 5) ||
@@ -407,10 +425,10 @@ const CalendarPage = () => {
             </div>
           </div>
         ) : (
-          <div className="sm:flex sm:space-x-4 space-y-4 sm:space-y-0">
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_350px] gap-6">
             {/* Calendar Section */}
-            <div className="">
-              <div className="bg-card rounded-lg border-border border shadow-md overflow-hidden max-w-5xl mx-auto lg:mx-0">
+            <div className="min-w-0">
+              <div className="bg-card rounded-lg border-border border shadow-md overflow-hidden">
                 <CalendarProvider>
                   <CalendarDate>
                     <CalendarDatePicker>
@@ -432,13 +450,13 @@ const CalendarPage = () => {
             </div>
 
             {/* Upcoming Contests Sidebar */}
-            <div className="md:min-w-[300px]">
-              <div className="bg-card rounded-lg border-border border shadow-md  p-4 lg:sticky lg:top-4 h-full">
-                <h2 className="text-lg lg:text-xl font-semibold mb-4 flex items-center gap-2">
-                  <Clock className="h-4 w-4 lg:h-5 lg:w-5" />
+            <div className="min-w-0">
+              <div className="bg-card rounded-lg border-border border shadow-md p-4 h-full max-h-[calc(100vh-70px)] xl:sticky xl:top-4">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
                   Upcoming Contests
                 </h2>
-                <div className="space-y-3 max-h-[72vh] lg:max-h-[82vh] overflow-y-auto scrollbar-hide">
+                <div className="space-y-3 overflow-y-auto h-full max-h-[calc(100vh-150px)]">
                   {filteredContests
                     .filter(contest => {
                       const startDate = parseDate(contest.startAt);
