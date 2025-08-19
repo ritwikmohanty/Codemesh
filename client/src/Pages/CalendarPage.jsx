@@ -40,9 +40,10 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Clock, Globe, Bell, Calendar, Filter, ChevronDown, X, Settings, User } from 'lucide-react';
+import { Clock, Globe, Bell, Calendar, Filter, ChevronDown, X, Settings, User, Download, Plus } from 'lucide-react';
 import Navbar from '../Components/Navbar.jsx';
 import { useAuth } from '../contexts/AuthContext';
+import { addToCalendar, generateGoogleCalendarURL, generateOutlookCalendarURL } from '../utils/calendarUtils';
 
 const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
@@ -488,6 +489,16 @@ const CalendarPage = () => {
       return null;
     }
 
+    // Handle add to calendar
+    const handleAddToCalendar = (provider) => {
+      try {
+        addToCalendar(feature, provider);
+      } catch (error) {
+        console.error('Error adding to calendar:', error);
+        setError('Failed to add event to calendar');
+      }
+    };
+
     return (
       <Dialog>
         <DialogTrigger asChild>
@@ -521,9 +532,49 @@ const CalendarPage = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-2 mt-4">
-            <Button size="sm" className="flex-1">
-              Add to Calendar
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="sm" className="flex-1">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add to Calendar
+                  <ChevronDown className="h-4 w-4 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuItem 
+                  onClick={() => handleAddToCalendar('google')}
+                  className="cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-blue-500 rounded-sm flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">G</span>
+                    </div>
+                    Google Calendar
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => handleAddToCalendar('outlook')}
+                  className="cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-blue-600 rounded-sm flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">O</span>
+                    </div>
+                    Outlook Calendar
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => handleAddToCalendar('ics')}
+                  className="cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <Download className="h-4 w-4" />
+                    Download ICS File
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button size="sm" variant="outline" className="flex-1">
               <Bell className="h-4 w-4 mr-1" />
               Notify Me
@@ -1366,12 +1417,44 @@ const CalendarPage = () => {
                             )}
                           </div>
                           <div className="flex gap-1 pt-1">
-                            <Button size="sm" variant="outline" className="h-7 px-2 text-xs flex-1">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="outline" className="h-7 px-2 text-xs flex-1">
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Add
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" className="w-40">
+                                <DropdownMenuItem 
+                                  onClick={() => addToCalendar(contest, 'google')}
+                                  className="cursor-pointer text-xs"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 bg-blue-500 rounded-sm"></div>
+                                    Google
+                                  </div>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => addToCalendar(contest, 'outlook')}
+                                  className="cursor-pointer text-xs"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 bg-blue-600 rounded-sm"></div>
+                                    Outlook
+                                  </div>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => addToCalendar(contest, 'ics')}
+                                  className="cursor-pointer text-xs"
+                                >
+                                  <Download className="h-3 w-3" />
+                                  ICS File
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            <Button size="sm" className="h-7 px-2 text-xs flex-1">
                               <Bell className="h-3 w-3 mr-1" />
                               Notify
-                            </Button>
-                            <Button size="sm" className="h-7 px-2 text-xs flex-1">
-                              Register
                             </Button>
                           </div>
                         </div>
