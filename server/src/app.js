@@ -4,6 +4,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import session from "express-session";
+import MongoStore from "connect-mongo";
 
 // Import models to register them with Mongoose
 import './models/User.js';
@@ -14,9 +15,11 @@ import passport from "./config/passport.js";
 // Import routes
 import authRoutes from './routes/authRoutes.js';
 import contestRoutes from './routes/contestRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
-// Import scheduler
+// Import schedulers
 import { startContestScheduler } from './schedulers/contestScheduler.js';
+import { startNotificationScheduler } from './schedulers/notificationScheduler.js';
 
 const app = express();
 
@@ -34,14 +37,18 @@ app.use(cors({
   credentials: true
 }));
 
-// Session configuration for Passport
+// Session configuration for Passport and notifications
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-session-secret',
+  secret: process.env.SESSION_SECRET || 'your-session-secret-change-in-production',
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true, // Create sessions for anonymous users
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    touchAfter: 24 * 3600 // lazy session update
+  }),
   cookie: {
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
   }
 }));
 
@@ -72,6 +79,7 @@ app.get("/", (req, res) => {
 try {
   app.use('/api/v1', authRoutes);
   app.use('/api/v1', contestRoutes);
+  app.use('/api/v1', notificationRoutes);
 } catch (routeErr) {
   console.error('Route registration error:', routeErr);
   throw routeErr;
@@ -97,8 +105,9 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
-      // Start contest scheduler after server is running
+      // Start schedulers after server is running
       startContestScheduler();
+      startNotificationScheduler();
     });
   })
   .catch(err => console.error("MongoDB connection error:", err));

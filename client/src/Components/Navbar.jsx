@@ -1,10 +1,20 @@
 import React, { useState, useEffect, useId } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import LogoLight from '/codemesh.png';
 import LogoDark from '/codemeshdark.png';
 import { MoonIcon, SunIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SignIn from './signin';
 import SignUp from './signup';
 
@@ -62,6 +72,7 @@ const Navbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false);
     const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false);
+    const { isAuthenticated, user, logout } = useAuth();
     const location = useLocation();
 
     useEffect(() => {
@@ -81,6 +92,15 @@ const Navbar = () => {
             : 'static px-5 py-2'
         }
     `;
+
+    const getDefaultAvatar = (name) => {
+        return name ? name.charAt(0).toUpperCase() : 'U';
+    };
+
+    const handleLogout = () => {
+        logout();
+        setIsMenuOpen(false);
+    };
 
     return (
         <nav id="main-nav" className={navClasses}>
@@ -111,23 +131,61 @@ const Navbar = () => {
 
                 {/* Action Buttons & Theme Toggle */}
                 <div className="hidden md:flex items-center space-x-2">
-                    <SignIn 
-                        isDialogOpen={isSignInDialogOpen} 
-                        onOpenChange={setIsSignInDialogOpen}
-                    >
-                        <button className="px-4 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted bg-transparent text-foreground">
-                            Sign In
-                        </button>
-                    </SignIn>
-                    <SignUp 
-                        isDialogOpen={isSignUpDialogOpen} 
-                        onOpenChange={setIsSignUpDialogOpen}
-                    >
-                        <button className="px-4 py-2 text-sm font-semibold rounded-md transition-colors bg-primary text-primary-foreground">
-                            Get Started
-                        </button>
-                    </SignUp>
-                    <ThemeSwitch />
+                    {isAuthenticated && user ? (
+                        <>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className="flex items-center space-x-2 p-1 rounded-full hover:bg-muted transition-colors">
+                                        <Avatar className="h-8 w-8">
+                                            <AvatarImage 
+                                                src={user.avatarUrl} 
+                                                alt={user.name}
+                                            />
+                                            <AvatarFallback>
+                                                {getDefaultAvatar(user.name)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                    <DropdownMenuLabel>
+                                        <div className="flex flex-col space-y-1">
+                                            <p className="text-sm font-medium">{user.name}</p>
+                                            <p className="text-xs text-muted-foreground">{user.email}</p>
+                                        </div>
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem>Profile</DropdownMenuItem>
+                                    <DropdownMenuItem>Settings</DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={handleLogout}>
+                                        Sign out
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <ThemeSwitch />
+                        </>
+                    ) : (
+                        <>
+                            <SignIn 
+                                isDialogOpen={isSignInDialogOpen} 
+                                onOpenChange={setIsSignInDialogOpen}
+                            >
+                                <button className="px-4 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted bg-transparent text-foreground">
+                                    Sign In
+                                </button>
+                            </SignIn>
+                            <SignUp 
+                                isDialogOpen={isSignUpDialogOpen} 
+                                onOpenChange={setIsSignUpDialogOpen}
+                            >
+                                <button className="px-4 py-2 text-sm font-semibold rounded-md transition-colors bg-primary text-primary-foreground">
+                                    Get Started
+                                </button>
+                            </SignUp>
+                            <ThemeSwitch />
+                        </>
+                    )}
                 </div>
                 
                 {/* Mobile Menu Button */}
@@ -148,27 +206,66 @@ const Navbar = () => {
                         <a href="/calendar" className="block px-3 py-2 rounded-md text-base font-medium hover:text-primary hover:bg-muted">Calendar</a>
                     </div>
                     <div className="pt-4 pb-3 border-t border-border">
-                        <div className="flex items-center px-4 space-x-2">
-                            <SignIn 
-                                isDialogOpen={isSignInDialogOpen} 
-                                onOpenChange={setIsSignInDialogOpen}
-                            >
-                                <button className="w-full text-center px-4 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted bg-transparent text-foreground">
-                                    Sign In
-                                </button>
-                            </SignIn>
-                            <SignUp 
-                                isDialogOpen={isSignUpDialogOpen} 
-                                onOpenChange={setIsSignUpDialogOpen}
-                            >
-                                <button className="w-full text-center px-4 py-2 text-sm font-semibold rounded-md transition-colors bg-primary text-primary-foreground">
-                                    Get Started
-                                </button>
-                            </SignUp>
-                        </div>
-                        <div className="mt-3 px-4">
-                            <ThemeSwitch />
-                        </div>
+                        {isAuthenticated && user ? (
+                            <div className="px-4 space-y-3">
+                                <div className="flex items-center space-x-3">
+                                    <Avatar className="h-10 w-10">
+                                        <AvatarImage 
+                                            src={user.avatarUrl} 
+                                            alt={user.name}
+                                        />
+                                        <AvatarFallback>
+                                            {getDefaultAvatar(user.name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex flex-col">
+                                        <p className="text-sm font-medium">{user.name}</p>
+                                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <button className="w-full text-left px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted">
+                                        Profile
+                                    </button>
+                                    <button className="w-full text-left px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted">
+                                        Settings
+                                    </button>
+                                    <button 
+                                        onClick={handleLogout}
+                                        className="w-full text-left px-3 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted text-red-600"
+                                    >
+                                        Sign out
+                                    </button>
+                                </div>
+                                <div className="pt-2">
+                                    <ThemeSwitch />
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex items-center px-4 space-x-2">
+                                    <SignIn 
+                                        isDialogOpen={isSignInDialogOpen} 
+                                        onOpenChange={setIsSignInDialogOpen}
+                                    >
+                                        <button className="w-full text-center px-4 py-2 text-sm font-medium rounded-md transition-colors hover:bg-muted bg-transparent text-foreground">
+                                            Sign In
+                                        </button>
+                                    </SignIn>
+                                    <SignUp 
+                                        isDialogOpen={isSignUpDialogOpen} 
+                                        onOpenChange={setIsSignUpDialogOpen}
+                                    >
+                                        <button className="w-full text-center px-4 py-2 text-sm font-semibold rounded-md transition-colors bg-primary text-primary-foreground">
+                                            Get Started
+                                        </button>
+                                    </SignUp>
+                                </div>
+                                <div className="mt-3 px-4">
+                                    <ThemeSwitch />
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

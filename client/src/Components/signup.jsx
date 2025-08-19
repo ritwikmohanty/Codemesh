@@ -35,13 +35,17 @@ export default function SignUp({ children, isDialogOpen, onOpenChange }) {
     if (error) clearError()
   }
   
+  // const handleSignUpClick = () => {
+  //   if (location.pathname === '/') {
+  //     onOpenChange?.(true)
+  //   } else {
+  //     navigate('/signup')
+  //   }
+  // }
+
   const handleSignUpClick = () => {
-    if (location.pathname === '/') {
-      onOpenChange?.(true)
-    } else {
-      navigate('/signup')
-    }
-  }
+  onOpenChange?.(true)
+}
 
   const handleSubmit = async (e) => {
     e.preventDefault()

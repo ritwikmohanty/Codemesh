@@ -36,13 +36,17 @@ export default function SignIn({ children, isDialogOpen, onOpenChange }) {
     if (error) clearError()
   }
   
+  // const handleSignInClick = () => {
+  //   if (location.pathname === '/') {
+  //     onOpenChange?.(true)
+  //   } else {
+  //     navigate('/signin')
+  //   }
+  // }
+
   const handleSignInClick = () => {
-    if (location.pathname === '/') {
-      onOpenChange?.(true)
-    } else {
-      navigate('/signin')
-    }
-  }
+  onOpenChange?.(true)
+}
 
   const handleSubmit = async (e) => {
     e.preventDefault()

@@ -25,12 +25,24 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Globe, Bell, Calendar, Filter } from 'lucide-react';
-import Navbar from '../Components/Navbar';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Clock, Globe, Bell, Calendar, Filter, ChevronDown, X, Settings, User } from 'lucide-react';
+import Navbar from '../Components/Navbar.jsx';
+import { useAuth } from '../contexts/AuthContext';
 
 const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
@@ -63,16 +75,49 @@ const durations = [
   { id: 'long', name: 'Long (> 5 hours)' },
 ];
 
+// Notification timing options
+const notificationTimes = [
+  { id: '15', name: '15 minutes before' },
+  { id: '30', name: '30 minutes before' },
+  { id: '60', name: '1 hour before' },
+  { id: '120', name: '2 hours before' },
+  { id: '360', name: '6 hours before' },
+  { id: '720', name: '12 hours before' },
+  { id: '1440', name: '1 day before' },
+  { id: 'custom', name: 'Custom time' }
+];
+
 const CalendarPage = () => {
+  const { user, isAuthenticated } = useAuth(); // Add auth context
   const [contests, setContests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedPlatform, setSelectedPlatform] = useState('all');
-  const [selectedDifficulty, setSelectedDifficulty] = useState('all');
-  const [selectedDuration, setSelectedDuration] = useState('all');
+  const [selectedPlatforms, setSelectedPlatforms] = useState(['all']);
+  const [selectedDifficulties, setSelectedDifficulties] = useState(['all']);
+  const [selectedDurations, setSelectedDurations] = useState(['all']);
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [selectedContest, setSelectedContest] = useState(null);
+  
+  // Notification preferences state
+  const [showNotificationDialog, setShowNotificationDialog] = useState(false);
+  const [notificationPreferences, setNotificationPreferences] = useState({
+    enabled: false,
+    methods: ['push'],
+    platforms: ['all'],
+    difficulties: ['all'],
+    durations: ['all'],
+    reminderTime: '60',
+    customTime: '',
+    customUnit: 'minutes',
+    userHandle: '',
+    userName: '',
+    personalizedMessages: true
+  });
+
+  // Additional state for push notifications
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushSubscription, setPushSubscription] = useState(null);
 
   // Helper function to safely parse dates
   const parseDate = (dateValue) => {
@@ -193,7 +238,98 @@ const CalendarPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Filter contests based on selected criteria
+  // Check if push notifications are supported
+  useEffect(() => {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      setPushSupported(true);
+      initializeServiceWorker();
+    }
+  }, []);
+
+  // Initialize service worker and check for existing subscription
+  const initializeServiceWorker = async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      console.log('Service Worker registered:', registration);
+
+      const subscription = await registration.pushManager.getSubscription();
+      if (subscription) {
+        setPushSubscription(subscription);
+      }
+    } catch (error) {
+      console.error('Service Worker registration failed:', error);
+    }
+  };
+
+  // Load notification preferences on mount and when auth state changes
+  useEffect(() => {
+    loadNotificationPreferences();
+  }, [isAuthenticated]); // Reload when auth state changes
+
+  const loadNotificationPreferences = async () => {
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add auth token if user is authenticated
+      if (isAuthenticated) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/notifications/preferences`, {
+        headers,
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          // For authenticated users, use their name from the user object
+          const preferences = {
+            ...data.data,
+            userName: isAuthenticated && user ? user.name : data.data.userName,
+            userHandle: isAuthenticated && user ? user.username : data.data.userHandle
+          };
+          setNotificationPreferences(preferences);
+          setNotificationsEnabled(data.data.enabled);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading notification preferences:', error);
+    }
+  };
+
+  // Subscribe to push notifications
+  const subscribeToPush = async () => {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      
+      // Get VAPID public key from server
+      const vapidResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/notifications/vapid-public-key`);
+      const vapidData = await vapidResponse.json();
+      
+      if (!vapidData.success || !vapidData.publicKey) {
+        throw new Error('Unable to get VAPID public key');
+      }
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidData.publicKey)
+      });
+
+      setPushSubscription(subscription);
+      return subscription;
+    } catch (error) {
+      console.error('Error subscribing to push notifications:', error);
+      throw error;
+    }
+  };
+
+  // Fetch contests based on selected criteria
   const filteredContests = useMemo(() => {
     return contests.filter(contest => {
       // Ensure contest has valid dates before filtering
@@ -201,13 +337,13 @@ const CalendarPage = () => {
         return false;
       }
       
-      // Platform filter - compare lowercase values
-      const platformMatch = selectedPlatform === 'all' || 
-        contest.platform.toLowerCase() === selectedPlatform.toLowerCase();
+      // Platform filter - handle multiple selections
+      const platformMatch = selectedPlatforms.includes('all') || 
+        selectedPlatforms.some(platform => contest.platform.toLowerCase() === platform.toLowerCase());
       
-      // Difficulty filter - compare with proper capitalization
-      const difficultyMatch = selectedDifficulty === 'all' || 
-        contest.difficulty === capitalize(selectedDifficulty);
+      // Difficulty filter - handle multiple selections
+      const difficultyMatch = selectedDifficulties.includes('all') || 
+        selectedDifficulties.some(difficulty => contest.difficulty === capitalize(difficulty));
       
       // Parse duration more safely - extract hours from duration string
       let durationHours = 0;
@@ -221,14 +357,129 @@ const CalendarPage = () => {
                       (minuteMatch ? parseInt(minuteMatch[1]) / 60 : 0);
       }
       
-      const durationMatch = selectedDuration === 'all' || 
-        (selectedDuration === 'short' && durationHours < 2) ||
-        (selectedDuration === 'medium' && durationHours >= 2 && durationHours <= 5) ||
-        (selectedDuration === 'long' && durationHours > 5);
+      // Duration filter - handle multiple selections
+      const durationMatch = selectedDurations.includes('all') || 
+        selectedDurations.some(duration => {
+          return (duration === 'short' && durationHours < 2) ||
+                 (duration === 'medium' && durationHours >= 2 && durationHours <= 5) ||
+                 (duration === 'long' && durationHours > 5);
+        });
       
       return platformMatch && difficultyMatch && durationMatch;
     });
-  }, [contests, selectedPlatform, selectedDifficulty, selectedDuration]);
+  }, [contests, selectedPlatforms, selectedDifficulties, selectedDurations]);
+
+  // Handle platform selection
+  const handlePlatformChange = (platformId, checked) => {
+    if (platformId === 'all') {
+      setSelectedPlatforms(['all']);
+    } else {
+      setSelectedPlatforms(prev => {
+        const newSelection = prev.filter(id => id !== 'all');
+        if (checked) {
+          return [...newSelection, platformId];
+        } else {
+          const filtered = newSelection.filter(id => id !== platformId);
+          return filtered.length === 0 ? ['all'] : filtered;
+        }
+      });
+    }
+  };
+
+  // Handle difficulty selection
+  const handleDifficultyChange = (difficultyId, checked) => {
+    if (difficultyId === 'all') {
+      setSelectedDifficulties(['all']);
+    } else {
+      setSelectedDifficulties(prev => {
+        const newSelection = prev.filter(id => id !== 'all');
+        if (checked) {
+          return [...newSelection, difficultyId];
+        } else {
+          const filtered = newSelection.filter(id => id !== difficultyId);
+          return filtered.length === 0 ? ['all'] : filtered;
+        }
+      });
+    }
+  };
+
+  // Handle duration selection
+  const handleDurationChange = (durationId, checked) => {
+    if (durationId === 'all') {
+      setSelectedDurations(['all']);
+    } else {
+      setSelectedDurations(prev => {
+        const newSelection = prev.filter(id => id !== 'all');
+        if (checked) {
+          return [...newSelection, durationId];
+        } else {
+          const filtered = newSelection.filter(id => id !== durationId);
+          return filtered.length === 0 ? ['all'] : filtered;
+        }
+      });
+    }
+  };
+
+  // Get display text for multi-select dropdowns
+  const getPlatformDisplayText = () => {
+    if (selectedPlatforms.includes('all')) return 'All Platforms';
+    if (selectedPlatforms.length === 1) {
+      const platform = platforms.find(p => p.id === selectedPlatforms[0]);
+      return platform?.name || 'Select platforms';
+    }
+    return `${selectedPlatforms.length} platforms selected`;
+  };
+
+  const getDifficultyDisplayText = () => {
+    if (selectedDifficulties.includes('all')) return 'All Difficulties';
+    if (selectedDifficulties.length === 1) {
+      const difficulty = difficulties.find(d => d.id === selectedDifficulties[0]);
+      return difficulty?.name || 'Select difficulties';
+    }
+    return `${selectedDifficulties.length} difficulties selected`;
+  };
+
+  const getDurationDisplayText = () => {
+    if (selectedDurations.includes('all')) return 'All Durations';
+    if (selectedDurations.length === 1) {
+      const duration = durations.find(d => d.id === selectedDurations[0]);
+      return duration?.name || 'Select durations';
+    }
+    return `${selectedDurations.length} durations selected`;
+  };
+
+  // Multi-select dropdown component
+  const MultiSelectDropdown = ({ items, selectedItems, onItemChange, displayText, placeholder }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="w-full justify-between">
+          <span className="truncate">{displayText}</span>
+          <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56">
+        {items.map((item) => (
+          <DropdownMenuItem
+            key={item.id}
+            className="flex items-center space-x-2 cursor-pointer"
+            onSelect={(e) => e.preventDefault()}
+          >
+            <Checkbox
+              id={item.id}
+              checked={selectedItems.includes(item.id)}
+              onCheckedChange={(checked) => onItemChange(item.id, checked)}
+            />
+            <label
+              htmlFor={item.id}
+              className="flex-1 cursor-pointer"
+            >
+              {item.name}
+            </label>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 
   // Enhanced ContestItem with error boundaries
   const ContestItem = ({ feature }) => {
@@ -283,6 +534,309 @@ const CalendarPage = () => {
     );
   };
 
+  // Handle notification preferences save
+  const handleSaveNotificationPreferences = async () => {
+    try {
+      console.log('Saving notification preferences:', notificationPreferences);
+      
+      let subscription = pushSubscription;
+      
+      // Subscribe to push notifications if not already subscribed
+      if (notificationPreferences.methods.includes('push') && !subscription) {
+        try {
+          subscription = await subscribeToPush();
+        } catch (pushError) {
+          console.error('Error subscribing to push notifications:', pushError);
+          // Continue saving preferences even if push subscription fails
+        }
+      }
+
+      const requestBody = {
+        ...notificationPreferences,
+        enabled: true,
+        pushSubscription: subscription,
+        timezone
+      };
+
+      // For authenticated users, use their name and handle from user object
+      if (isAuthenticated && user) {
+        requestBody.userName = user.name;
+        requestBody.userHandle = user.username || '';
+      }
+
+      console.log('Sending request body:', requestBody);
+
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add auth token if user is authenticated
+      if (isAuthenticated) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/notifications/preferences`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('Server error response:', errorData);
+        throw new Error(errorData.message || 'Failed to save notification preferences');
+      }
+
+      const data = await response.json();
+      console.log('Success response:', data);
+      
+      if (data.success) {
+        setNotificationsEnabled(true);
+        const updatedPreferences = { ...notificationPreferences, enabled: true };
+        
+        // Update with user data if authenticated
+        if (isAuthenticated && user) {
+          updatedPreferences.userName = user.name;
+          updatedPreferences.userHandle = user.username || '';
+        }
+        
+        setNotificationPreferences(updatedPreferences);
+        setShowNotificationDialog(false);
+        
+        console.log('Notification preferences saved successfully');
+      } else {
+        throw new Error(data.message || 'Failed to save preferences');
+      }
+    } catch (error) {
+      console.error('Error saving notification preferences:', error);
+      setError('Failed to save notification preferences: ' + error.message);
+    }
+  };
+
+  // Handle notification toggle - FIX: Update to handle disabling properly
+  const handleNotificationToggle = async (enabled) => {
+    if (enabled) {
+      setShowNotificationDialog(true);
+    } else {
+      // Disable notifications
+      setNotificationsEnabled(false);
+      setNotificationPreferences(prev => ({ ...prev, enabled: false }));
+      
+      // Send update to backend to disable notifications
+      try {
+        const headers = {
+          'Content-Type': 'application/json',
+        };
+
+        if (isAuthenticated) {
+          const token = localStorage.getItem('token');
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+        }
+
+        await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/notifications/preferences`, {
+          method: 'POST',
+          headers,
+          credentials: 'include',
+          body: JSON.stringify({
+            ...notificationPreferences,
+            enabled: false,
+            timezone
+          })
+        });
+      } catch (error) {
+        console.error('Error disabling notifications:', error);
+      }
+    }
+  };
+
+  // Send test notification
+  const sendTestNotification = async () => {
+    try {
+      console.log('Sending test notification...');
+      
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add auth token if user is authenticated
+      if (isAuthenticated) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/notifications/test`, {
+        method: 'POST',
+        headers,
+        credentials: 'include'
+      });
+
+      console.log('Test notification response status:', response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Test notification sent successfully:', data);
+        alert('Test notification sent! Check your browser for the notification.');
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('Test notification error:', errorData);
+        alert('Failed to send test notification: ' + errorData.message);
+      }
+    } catch (error) {
+      console.error('Error sending test notification:', error);
+      alert('Failed to send test notification: ' + error.message);
+    }
+  };
+
+  // Utility function to convert VAPID key
+  const urlBase64ToUint8Array = (base64String) => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
+  // Handle notification platform selection
+  const handleNotificationPlatformChange = (platformId, checked) => {
+    if (platformId === 'all') {
+      setNotificationPreferences(prev => ({
+        ...prev,
+        platforms: ['all']
+      }));
+    } else {
+      setNotificationPreferences(prev => {
+        const newSelection = prev.platforms.filter(id => id !== 'all');
+        if (checked) {
+          return { ...prev, platforms: [...newSelection, platformId] };
+        } else {
+          const filtered = newSelection.filter(id => id !== platformId);
+          return { ...prev, platforms: filtered.length === 0 ? ['all'] : filtered };
+        }
+      });
+    }
+  };
+
+  // Handle notification difficulty selection
+  const handleNotificationDifficultyChange = (difficultyId, checked) => {
+    if (difficultyId === 'all') {
+      setNotificationPreferences(prev => ({
+        ...prev,
+        difficulties: ['all']
+      }));
+    } else {
+      setNotificationPreferences(prev => {
+        const newSelection = prev.difficulties.filter(id => id !== 'all');
+        if (checked) {
+          return { ...prev, difficulties: [...newSelection, difficultyId] };
+        } else {
+          const filtered = newSelection.filter(id => id !== difficultyId);
+          return { ...prev, difficulties: filtered.length === 0 ? ['all'] : filtered };
+        }
+      });
+    }
+  };
+
+  // Handle notification duration selection
+  const handleNotificationDurationChange = (durationId, checked) => {
+    if (durationId === 'all') {
+      setNotificationPreferences(prev => ({
+        ...prev,
+        durations: ['all']
+      }));
+    } else {
+      setNotificationPreferences(prev => {
+        const newSelection = prev.durations.filter(id => id !== 'all');
+        if (checked) {
+          return { ...prev, durations: [...newSelection, durationId] };
+        } else {
+          const filtered = newSelection.filter(id => id !== durationId);
+          return { ...prev, durations: filtered.length === 0 ? ['all'] : filtered };
+        }
+      });
+    }
+  };
+
+  // Multi-select dropdown for notifications
+  const NotificationMultiSelect = ({ label, items, selectedItems, onItemChange, getDisplayText }) => (
+    <div className="space-y-2">
+      <Label className="text-sm font-medium">{label}</Label>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="w-full justify-between">
+            <span className="truncate">{getDisplayText()}</span>
+            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-full min-w-[250px]">
+          {items.map((item) => (
+            <DropdownMenuItem
+              key={item.id}
+              className="flex items-center space-x-2 cursor-pointer"
+              onSelect={(e) => e.preventDefault()}
+            >
+              <Checkbox
+                id={`notification-${item.id}`}
+                checked={selectedItems.includes(item.id)}
+                onCheckedChange={(checked) => onItemChange(item.id, checked)}
+              />
+              <label
+                htmlFor={`notification-${item.id}`}
+                className="flex-1 cursor-pointer"
+              >
+                {item.name}
+              </label>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+
+  // Get display text functions for notification preferences
+  const getNotificationPlatformDisplayText = () => {
+    if (notificationPreferences.platforms.includes('all')) return 'All Platforms';
+    if (notificationPreferences.platforms.length === 1) {
+      const platform = platforms.find(p => p.id === notificationPreferences.platforms[0]);
+      return platform?.name || 'Select platforms';
+    }
+    return `${notificationPreferences.platforms.length} platforms selected`;
+  };
+
+  const getNotificationDifficultyDisplayText = () => {
+    if (notificationPreferences.difficulties.includes('all')) return 'All Difficulties';
+    if (notificationPreferences.difficulties.length === 1) {
+      const difficulty = difficulties.find(d => d.id === notificationPreferences.difficulties[0]);
+      return difficulty?.name || 'Select difficulties';
+    }
+    return `${notificationPreferences.difficulties.length} difficulties selected`;
+  };
+
+  const getNotificationDurationDisplayText = () => {
+    if (notificationPreferences.durations.includes('all')) return 'All Durations';
+    if (notificationPreferences.durations.length === 1) {
+      const duration = durations.find(d => d.id === notificationPreferences.durations[0]);
+      return duration?.name || 'Select durations';
+    }
+    return `${notificationPreferences.durations.length} durations selected`;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -334,50 +888,35 @@ const CalendarPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-4">
             <div>
               <Label htmlFor="platform">Platform</Label>
-              <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select platform" />
-                </SelectTrigger>
-                <SelectContent>
-                  {platforms.map(platform => (
-                    <SelectItem key={platform.id} value={platform.id}>
-                      {platform.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectDropdown
+                items={platforms}
+                selectedItems={selectedPlatforms}
+                onItemChange={handlePlatformChange}
+                displayText={getPlatformDisplayText()}
+                placeholder="Select platforms"
+              />
             </div>
 
             <div>
               <Label htmlFor="difficulty">Difficulty</Label>
-              <Select value={selectedDifficulty} onValueChange={setSelectedDifficulty}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select difficulty" />
-                </SelectTrigger>
-                <SelectContent>
-                  {difficulties.map(difficulty => (
-                    <SelectItem key={difficulty.id} value={difficulty.id}>
-                      {difficulty.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectDropdown
+                items={difficulties}
+                selectedItems={selectedDifficulties}
+                onItemChange={handleDifficultyChange}
+                displayText={getDifficultyDisplayText()}
+                placeholder="Select difficulties"
+              />
             </div>
 
             <div>
               <Label htmlFor="duration">Duration</Label>
-              <Select value={selectedDuration} onValueChange={setSelectedDuration}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select duration" />
-                </SelectTrigger>
-                <SelectContent>
-                  {durations.map(duration => (
-                    <SelectItem key={duration.id} value={duration.id}>
-                      {duration.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectDropdown
+                items={durations}
+                selectedItems={selectedDurations}
+                onItemChange={handleDurationChange}
+                displayText={getDurationDisplayText()}
+                placeholder="Select durations"
+              />
             </div>
 
             <div>
@@ -401,10 +940,68 @@ const CalendarPage = () => {
               <Switch
                 id="notifications"
                 checked={notificationsEnabled}
-                onCheckedChange={setNotificationsEnabled}
+                onCheckedChange={handleNotificationToggle}
               />
-              <Label htmlFor="notifications">Notifications</Label>
+              <Label htmlFor="notifications" className="flex items-center gap-1">
+                Notifications
+                {/* {isAuthenticated && (
+                  <span className="text-xs text-green-600">(User)</span>
+                )}
+                {!isAuthenticated && (
+                  <span className="text-xs text-orange-600">(Session)</span>
+                )} */}
+              </Label>
+              {notificationsEnabled && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowNotificationDialog(true)}
+                  className="ml-2 p-1 h-6 w-6"
+                >
+                  <Settings className="h-3 w-3" />
+                </Button>
+              )}
             </div>
+          </div>
+
+          {/* Active Filters Display */}
+          <div className="flex flex-wrap gap-2 mb-2">
+            {!selectedPlatforms.includes('all') && selectedPlatforms.map(platformId => {
+              const platform = platforms.find(p => p.id === platformId);
+              return platform ? (
+                <Badge key={platformId} variant="secondary" className="flex items-center gap-1">
+                  {platform.name}
+                  <X 
+                    className="h-3 w-3 cursor-pointer" 
+                    onClick={() => handlePlatformChange(platformId, false)}
+                  />
+                </Badge>
+              ) : null;
+            })}
+            {!selectedDifficulties.includes('all') && selectedDifficulties.map(difficultyId => {
+              const difficulty = difficulties.find(d => d.id === difficultyId);
+              return difficulty ? (
+                <Badge key={difficultyId} variant="secondary" className="flex items-center gap-1">
+                  {difficulty.name}
+                  <X 
+                    className="h-3 w-3 cursor-pointer" 
+                    onClick={() => handleDifficultyChange(difficultyId, false)}
+                  />
+                </Badge>
+              ) : null;
+            })}
+            {!selectedDurations.includes('all') && selectedDurations.map(durationId => {
+              const duration = durations.find(d => d.id === durationId);
+              return duration ? (
+                <Badge key={durationId} variant="secondary" className="flex items-center gap-1">
+                  {duration.name}
+                  <X 
+                    className="h-3 w-3 cursor-pointer" 
+                    onClick={() => handleDurationChange(durationId, false)}
+                  />
+                </Badge>
+              ) : null;
+            })}
           </div>
 
           <div className="text-sm text-muted-foreground">
@@ -415,6 +1012,285 @@ const CalendarPage = () => {
             )}
           </div>
         </div>
+
+        {/* Notification Preferences Dialog */}
+        <Dialog open={showNotificationDialog} onOpenChange={setShowNotificationDialog}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Notification Preferences
+              </DialogTitle>
+              <DialogDescription>
+                Configure how and when you want to receive contest notifications
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6 py-4">
+              {/* Notification Methods */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Notification Methods</Label>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="push-notifications"
+                    checked={notificationPreferences.methods.includes('push')}
+                    disabled={!pushSupported}
+                    onCheckedChange={(checked) => {
+                      setNotificationPreferences(prev => ({
+                        ...prev,
+                        methods: checked 
+                          ? [...prev.methods.filter(m => m !== 'push'), 'push']
+                          : prev.methods.filter(m => m !== 'push')
+                      }));
+                    }}
+                  />
+                  <Label htmlFor="push-notifications" className="flex items-center gap-2">
+                    <Bell className="h-4 w-4" />
+                    Push Notifications
+                    {!pushSupported && <span className="text-xs text-muted-foreground">(Not supported)</span>}
+                  </Label>
+                </div>
+              </div>
+
+              {/* Personal Information - Only show for authenticated users or allow editing for anonymous */}
+              <div className="space-y-4">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Personal Information (for personalized messages)
+                </Label>
+                
+                {isAuthenticated && user ? (
+                  // Show read-only info for authenticated users
+                  <div className="bg-muted/50 p-4 rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Your Name</Label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{user.name}</span>
+                          <Badge variant="outline" className="text-xs">From Account</Badge>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Your Handle</Label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{user.username || 'Not set'}</span>
+                          <Badge variant="outline" className="text-xs">From Account</Badge>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Your name and handle are automatically taken from your account
+                    </p>
+                  </div>
+                ) : (
+                  // Show editable fields for anonymous users
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="user-name" className="text-xs">Your Name</Label>
+                      <Input
+                        id="user-name"
+                        placeholder="e.g., Ashish"
+                        value={notificationPreferences.userName}
+                        onChange={(e) => setNotificationPreferences(prev => ({
+                          ...prev,
+                          userName: e.target.value
+                        }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="user-handle" className="text-xs">Your Handle (optional)</Label>
+                      <Input
+                        id="user-handle"
+                        placeholder="e.g., ashish_dev"
+                        value={notificationPreferences.userHandle}
+                        onChange={(e) => setNotificationPreferences(prev => ({
+                          ...prev,
+                          userHandle: e.target.value
+                        }))}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="personalized-messages"
+                    checked={notificationPreferences.personalizedMessages}
+                    onCheckedChange={(checked) => setNotificationPreferences(prev => ({
+                      ...prev,
+                      personalizedMessages: checked
+                    }))}
+                  />
+                  <Label htmlFor="personalized-messages" className="text-sm">
+                    Enable personalized messages
+                  </Label>
+                </div>
+                
+                {notificationPreferences.personalizedMessages && (
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">Example message:</p>
+                    <p className="text-sm italic">
+                      "Hey {
+                        isAuthenticated && user 
+                          ? user.name 
+                          : (notificationPreferences.userName || 'Ashish')
+                      }, Codeforces Round 985 starts in 1 hour!"
+                    </p>
+                  </div>
+                )}
+
+                {!isAuthenticated && (
+                  <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      💡 <strong>Tip:</strong> Sign in to automatically use your account name and handle for personalized notifications
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Timing Preferences */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Notification Timing</Label>
+                <RadioGroup
+                  value={notificationPreferences.reminderTime}
+                  onValueChange={(value) => setNotificationPreferences(prev => ({
+                    ...prev,
+                    reminderTime: value
+                  }))}
+                  className="grid grid-cols-2 gap-2"
+                >
+                  {notificationTimes.map((time) => (
+                    <div key={time.id} className="flex items-center space-x-2">
+                      <RadioGroupItem value={time.id} id={time.id} />
+                      <Label htmlFor={time.id} className="text-sm cursor-pointer">
+                        {time.name}
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+
+                {notificationPreferences.reminderTime === 'custom' && (
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <Label htmlFor="custom-time" className="text-xs">Custom Time</Label>
+                      <Input
+                        id="custom-time"
+                        type="number"
+                        min="1"
+                        placeholder="Enter time"
+                        value={notificationPreferences.customTime}
+                        onChange={(e) => setNotificationPreferences(prev => ({
+                          ...prev,
+                          customTime: e.target.value
+                        }))}
+                      />
+                    </div>
+                    <Select 
+                      value={notificationPreferences.customUnit}
+                      onValueChange={(value) => setNotificationPreferences(prev => ({
+                        ...prev,
+                        customUnit: value
+                      }))}
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="minutes">Minutes</SelectItem>
+                        <SelectItem value="hours">Hours</SelectItem>
+                        <SelectItem value="days">Days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              {/* Platform Filters */}
+              <NotificationMultiSelect
+                label="Platforms to notify for"
+                items={platforms}
+                selectedItems={notificationPreferences.platforms}
+                onItemChange={handleNotificationPlatformChange}
+                getDisplayText={getNotificationPlatformDisplayText}
+              />
+
+              {/* Difficulty Filters */}
+              <NotificationMultiSelect
+                label="Contest Difficulties"
+                items={difficulties}
+                selectedItems={notificationPreferences.difficulties}
+                onItemChange={handleNotificationDifficultyChange}
+                getDisplayText={getNotificationDifficultyDisplayText}
+              />
+
+              {/* Duration Filters */}
+              <NotificationMultiSelect
+                label="Contest Durations"
+                items={durations}
+                selectedItems={notificationPreferences.durations}
+                onItemChange={handleNotificationDurationChange}
+                getDisplayText={getNotificationDurationDisplayText}
+              />
+
+              {/* Test Notification Button */}
+              {notificationPreferences.methods.includes('push') && (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={sendTestNotification}
+                    disabled={!pushSubscription}
+                    className="flex-1"
+                  >
+                    Send Test Notification
+                  </Button>
+                </div>
+              )}
+
+              {/* Preview */}
+              <div className="bg-muted/30 p-4 rounded-lg">
+                <Label className="text-sm font-medium mb-2 block">Notification Preview</Label>
+                <div className="space-y-2">
+                  <div className="bg-background p-3 rounded border">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Bell className="h-4 w-4" />
+                      <span className="font-medium text-sm">Contest Reminder</span>
+                    </div>
+                    <p className="text-sm">
+                      {notificationPreferences.personalizedMessages && (
+                        isAuthenticated && user 
+                          ? `Hey ${user.name}, `
+                          : notificationPreferences.userName 
+                            ? `Hey ${notificationPreferences.userName}, `
+                            : ''
+                      )}
+                      Codeforces Round 985 starts 
+                      {notificationPreferences.reminderTime === 'custom' 
+                        ? ` in ${notificationPreferences.customTime} ${notificationPreferences.customUnit}`
+                        : ` in ${notificationTimes.find(t => t.id === notificationPreferences.reminderTime)?.name.replace(' before', '') || '1 hour'}`
+                      }!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowNotificationDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveNotificationPreferences}
+                disabled={!notificationPreferences.methods.length}
+              >
+                Save Preferences
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Calendar and Upcoming Contests Section */}
         {loading ? (

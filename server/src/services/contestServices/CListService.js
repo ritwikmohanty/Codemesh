@@ -1,9 +1,6 @@
 import axios from 'axios';
 import { BaseContestService } from './BaseContestService.js';
 
-// Add this line at the top if not already present in your project entrypoint:
-// import dotenv from 'dotenv'; dotenv.config();
-
 export class CListService extends BaseContestService {
   constructor() {
     super('clist');
