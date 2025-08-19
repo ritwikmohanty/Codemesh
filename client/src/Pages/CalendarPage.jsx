@@ -529,9 +529,22 @@ const CalendarPage = () => {
                 Duration: {feature.duration || '0h'} 
                 {feature.participants && ` | Participants: ${feature.participants.toLocaleString()}`}
               </div>
+              <div>
+              {feature.url && (
+
+                  <a
+                    href={feature.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline text-sm"
+                  >
+                    Visit Contest Page
+                  </a>
+              )}
+              </div>
             </DialogDescription>
           </DialogHeader>
-          <div className="flex gap-2 mt-4">
+          <div className="flex gap-2 mt-2   ">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" className="flex-1">
@@ -1066,7 +1079,7 @@ const CalendarPage = () => {
 
         {/* Notification Preferences Dialog */}
         <Dialog open={showNotificationDialog} onOpenChange={setShowNotificationDialog}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto scrollbar-hide">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5" />
@@ -1383,7 +1396,7 @@ const CalendarPage = () => {
                   <Clock className="h-4 w-4" />
                   Upcoming Contests
                 </h2>
-                <div className="space-y-3 overflow-y-auto h-full max-h-[calc(100vh-150px)]">
+                <div className="space-y-3 overflow-y-auto h-full max-h-[calc(100vh-150px)] scrollbar-hide">
                   {filteredContests
                     .filter(contest => {
                       const startDate = parseDate(contest.startAt);
@@ -1414,6 +1427,18 @@ const CalendarPage = () => {
                             </div>
                             {contest.participants && (
                               <div className="text-xs opacity-75">{contest.participants.toLocaleString()} participants</div>
+                            )}
+                            {contest.url && (
+                              <div>
+                                <a
+                                  href={contest.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline"
+                                >
+                                  Visit Contest Page
+                                </a>
+                              </div>
                             )}
                           </div>
                           <div className="flex gap-1 pt-1">

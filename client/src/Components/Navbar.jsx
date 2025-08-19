@@ -77,18 +77,28 @@ const Navbar = () => {
 
     useEffect(() => {
         const handleScroll = () => {
-            setIsScrolled(window.scrollY > 50);
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            setIsScrolled(scrollTop > 50);
         };
-        window.addEventListener('scroll', handleScroll);
-        // Cleanup function to remove the event listener
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
 
+        // Add scroll listener to both window and document
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        document.addEventListener('scroll', handleScroll, { passive: true });
+        
+        // Initial check
+        handleScroll();
+        
+        // Cleanup function to remove the event listeners
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            document.removeEventListener('scroll', handleScroll);
+        };
+    }, []);
 
     const navClasses = `
         transition-transform transition-opacity duration-300 ease-out w-full z-50
         ${isScrolled 
-            ? 'fixed top-4 inset-x-0 mx-auto w-[calc(100%-2rem)] max-w-6xl rounded-full bg-card/90 backdrop-blur-xl shadow-lg border border-border px-4 py-1 animate-slide-down-fade opacity-40' 
+            ? 'fixed top-4 inset-x-0 mx-auto w-[calc(100%-2rem)] max-w-6xl rounded-full bg-card/95 backdrop-blur-xl shadow-lg border border-border px-4 py-1 animate-slide-down-fade opacity-100' 
             : 'static px-5 py-2'
         }
     `;
