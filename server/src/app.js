@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import session from "express-session";
 import MongoStore from "connect-mongo";
+import cookieParser from "cookie-parser";
 
 // Import models to register them with Mongoose
 import './models/User.js';
@@ -31,6 +32,7 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
 }
 
 // Middlewares
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',

@@ -24,6 +24,14 @@ const generateUsername = (name) => {
   return username;
 };
 
+const setCookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  path: '/'
+};
+
 export const signup = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -85,8 +93,9 @@ export const signup = async (req, res) => {
       new NotificationSetting({ user: user._id }).save()
     ]);
 
-    // Generate token
+    // Generate token and set as HTTP-only cookie
     const token = generateToken(user._id);
+    res.cookie('authToken', token, setCookieOptions);
 
     // Return user data without password
     const userData = {
@@ -101,7 +110,6 @@ export const signup = async (req, res) => {
 
     res.status(201).json({
       message: 'User created successfully',
-      token,
       user: userData
     });
 
@@ -141,8 +149,9 @@ export const signin = async (req, res) => {
       });
     }
 
-    // Generate token
+    // Generate token and set as HTTP-only cookie
     const token = generateToken(user._id);
+    res.cookie('authToken', token, setCookieOptions);
 
     // Return user data without password
     const userData = {
@@ -157,7 +166,6 @@ export const signin = async (req, res) => {
 
     res.json({
       message: 'Login successful',
-      token,
       user: userData
     });
 
@@ -192,7 +200,8 @@ export const getProfile = async (req, res) => {
 export const refreshToken = async (req, res) => {
   try {
     const newToken = generateToken(req.user._id);
-    res.json({ token: newToken });
+    res.cookie('authToken', newToken, setCookieOptions);
+    res.json({ message: 'Token refreshed successfully' });
   } catch (error) {
     console.error('Refresh token error:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -216,12 +225,24 @@ export const googleCallback = (req, res, next) => {
       return res.redirect(`${process.env.CLIENT_URL}?error=oauth_failed`);
     }
 
-    // Generate JWT token
+    // Generate JWT token and set as HTTP-only cookie
     const token = generateToken(user._id);
+    res.cookie('authToken', token, setCookieOptions);
     
-    // Redirect to frontend with token
-    res.redirect(`${process.env.CLIENT_URL}?token=${token}&success=oauth_success`);
+    // Redirect to frontend with success flag
+    res.redirect(`${process.env.CLIENT_URL}?success=oauth_success`);
   })(req, res, next);
+};
+
+// Add logout endpoint
+export const logout = (req, res) => {
+  res.clearCookie('authToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path: '/'
+  });
+  res.json({ message: 'Logged out successfully' });
 };
 
 // Get user data for OAuth success

@@ -3,8 +3,9 @@ import User from '../models/User.js';
 
 export const authenticateToken = async (req, res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    // Try to get token from cookie first, then fallback to Authorization header
+    const token = req.cookies?.authToken || 
+                  (req.headers['authorization'] && req.headers['authorization'].split(' ')[1]);
 
     if (!token) {
       return res.status(401).json({ message: 'Access token required' });
@@ -26,8 +27,9 @@ export const authenticateToken = async (req, res, next) => {
 
 export const optionalAuth = async (req, res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    // Try to get token from cookie first, then fallback to Authorization header
+    const token = req.cookies?.authToken || 
+                  (req.headers['authorization'] && req.headers['authorization'].split(' ')[1]);
 
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);

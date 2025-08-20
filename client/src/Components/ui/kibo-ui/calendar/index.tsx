@@ -181,7 +181,7 @@ type OutOfBoundsDayProps = {
 };
 
 const OutOfBoundsDay = ({ day }: OutOfBoundsDayProps) => (
-  <div className="relative h-full w-full bg-secondary p-1 text-muted-foreground text-xs">
+  <div className="relative h-full w-full bg-secondary p-1 text-secondary-foreground text-xs">
     {day}
   </div>
 );
@@ -263,6 +263,15 @@ export const CalendarBody = ({ features, children }: CalendarBodyProps) => {
     return result;
   }, [features, daysInMonth, year, month]);
 
+  const today = useMemo(() => {
+    const now = new Date();
+    return {
+      day: now.getDate(),
+      month: now.getMonth(),
+      year: now.getFullYear(),
+    };
+  }, []);
+
   const days: ReactNode[] = [];
 
   for (let i = 0; i < firstDay; i++) {
@@ -279,9 +288,16 @@ export const CalendarBody = ({ features, children }: CalendarBodyProps) => {
   for (let day = 1; day <= daysInMonth; day++) {
     const featuresForDay = featuresByDay[day] || [];
 
+    // Check if this is today
+    const isToday =
+      day === today.day && month === today.month && year === today.year;
+
     days.push(
       <div
-        className="relative flex h-full w-full flex-col gap-1 p-1 text-muted-foreground text-xs"
+        className={cn(
+          'relative flex h-full w-full flex-col gap-1 p-1 text-muted-foreground text-xs',
+          isToday && 'bg-primary text-primary-foreground'
+        )}
         key={day}
       >
         {day}

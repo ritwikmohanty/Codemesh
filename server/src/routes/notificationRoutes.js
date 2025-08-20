@@ -18,9 +18,9 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 // Enhanced auth middleware that handles both authenticated and anonymous users
 const enhancedOptionalAuth = async (req, res, next) => {
   try {
-    // First try to get authenticated user
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    // First try to get authenticated user from cookie, then Authorization header
+    const token = req.cookies?.authToken || 
+                  (req.headers['authorization'] && req.headers['authorization'].split(' ')[1]);
 
     if (token) {
       try {

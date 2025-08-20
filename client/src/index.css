@@ -121,6 +121,9 @@ body {
   --shadow-xl: 1px 1px 16px -2px hsl(0 63% 18% / 0.12), 1px 8px 10px -3px hsl(0 63% 18% / 0.12);
   --shadow-2xl: 1px 1px 16px -2px hsl(0 63% 18% / 0.30);
 }
+
+
+
 @layer base {
   html {
     font-family: var(--font-sans);

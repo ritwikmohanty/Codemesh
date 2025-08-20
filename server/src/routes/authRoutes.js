@@ -6,7 +6,8 @@ import {
   refreshToken,
   googleAuth,
   googleCallback,
-  getOAuthUser
+  getOAuthUser,
+  logout
 } from '../controllers/authController.js';
 import { authenticateToken } from '../middlewares/auth.js';
 
@@ -15,6 +16,7 @@ const router = express.Router();
 // Public routes
 router.post('/signup', signup);
 router.post('/signin', signin);
+router.post('/logout', logout);
 
 // Google OAuth routes
 router.get('/auth/google', googleAuth);
@@ -25,6 +27,5 @@ router.get('/profile', authenticateToken, getProfile);
 router.post('/refresh', authenticateToken, refreshToken);
 router.get('/oauth/user', authenticateToken, getOAuthUser);
 
-// All route paths are valid. If you add new routes, ensure no stray ':' or malformed parameters.
 
 export default router;
