@@ -3,9 +3,6 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import LogoLight from '/codemesh.png';
 import LogoDark from '/codemeshdark.png';
-import { MoonIcon, SunIcon } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +14,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import SignIn from './signin';
 import SignUp from './signup';
+import ThemeToggleButton from "@/components/ui/theme-toggle-button"
+
 
 const MenuIcon = () => (
      <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
@@ -24,48 +23,6 @@ const MenuIcon = () => (
     </svg>
 );
 
-const ThemeSwitch = () => {
-    const id = useId();
-    const getDefaultChecked = () => {
-        if (typeof window === "undefined") return true;
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) return savedTheme === 'dark';
-        return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    };
-    const [checked, setChecked] = useState(getDefaultChecked);
-
-    useEffect(() => {
-        if (checked) {
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('theme', 'dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('theme', 'light');
-        }
-    }, [checked]);
-
-    return (
-        <div>
-            <div className="relative inline-grid h-8 grid-cols-[1fr_1fr] items-center text-sm font-medium">
-                <Switch
-                    id={id}
-                    checked={checked}
-                    onCheckedChange={setChecked}
-                    className="peer data-[state=unchecked]:bg-input/50 absolute inset-0 h-[inherit] w-auto [&_span]:z-10 [&_span]:h-full [&_span]:w-1/2 [&_span]:transition-transform [&_span]:duration-300 [&_span]:ease-[cubic-bezier(0.16,1,0.3,1)] [&_span]:data-[state=checked]:translate-x-full [&_span]:data-[state=checked]:rtl:-translate-x-full"
-                />
-                <span className="pointer-events-none relative ms-0.5 flex min-w-8 items-center justify-center text-center transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] peer-data-[state=checked]:invisible peer-data-[state=unchecked]:translate-x-full peer-data-[state=unchecked]:rtl:-translate-x-full">
-                    <MoonIcon size={16} aria-hidden="true" />
-                </span>
-                <span className="peer-data-[state=checked]:text-primary-foreground pointer-events-none relative me-0.5 flex min-w-8 items-center justify-center text-center transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] peer-data-[state=checked]:-translate-x-full peer-data-[state=unchecked]:invisible peer-data-[state=checked]:rtl:translate-x-full">
-                    <SunIcon size={16} aria-hidden="true" />
-                </span>
-            </div>
-            <Label htmlFor={id} className="sr-only">
-                Labeled switch
-            </Label>
-        </div>
-    );
-};
 
 const Navbar = () => {
     const [isScrolled, setIsScrolled] = useState(false);
@@ -173,7 +130,7 @@ const Navbar = () => {
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                            <ThemeSwitch />
+                            <ThemeToggleButton showLabel variant="circle-blur" start="top-right" />
                         </>
                     ) : (
                         <>
@@ -193,7 +150,7 @@ const Navbar = () => {
                                     Get Started
                                 </button>
                             </SignUp>
-                            <ThemeSwitch />
+                            <ThemeToggleButton showLabel variant="circle-blur" start="top-right" />
                         </>
                     )}
                 </div>
@@ -248,7 +205,7 @@ const Navbar = () => {
                                     </button>
                                 </div>
                                 <div className="pt-2">
-                                    <ThemeSwitch />
+                                    <ThemeToggleButton showLabel variant="circle-blur" start="top-right" />
                                 </div>
                             </div>
                         ) : (
@@ -272,7 +229,7 @@ const Navbar = () => {
                                     </SignUp>
                                 </div>
                                 <div className="mt-3 px-4">
-                                    <ThemeSwitch />
+                                    <ThemeToggleButton showLabel variant="circle-blur" start="top-right" />
                                 </div>
                             </>
                         )}
