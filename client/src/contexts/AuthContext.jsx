@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { api, setAuthToken, removeAuthToken } from '../utils/api.jsx';
+import { api } from '../utils/api.jsx';
 
 const AuthContext = createContext();
 
@@ -50,21 +50,18 @@ export const AuthProvider = ({ children }) => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      checkAuth();
-    }
+    // Check if user is authenticated on app load
+    checkAuth();
   }, []);
 
-  // Check for OAuth callback tokens in URL
+  // Check for OAuth callback success in URL
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
     const success = urlParams.get('success');
     const error = urlParams.get('error');
 
-    if (token && success === 'oauth_success') {
-      setAuthToken(token);
+    if (success === 'oauth_success') {
+      // OAuth was successful, check auth to get user data
       checkAuth();
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -81,7 +78,6 @@ export const AuthProvider = ({ children }) => {
       const response = await api.auth.getProfile();
       dispatch({ type: 'AUTH_SUCCESS', payload: response });
     } catch (error) {
-      removeAuthToken();
       dispatch({ type: 'AUTH_ERROR', payload: error.message });
     }
   };
@@ -90,7 +86,6 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'AUTH_START' });
       const response = await api.auth.signup(userData);
-      setAuthToken(response.token);
       dispatch({ type: 'AUTH_SUCCESS', payload: response });
       return response;
     } catch (error) {
@@ -103,7 +98,6 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'AUTH_START' });
       const response = await api.auth.signin(credentials);
-      setAuthToken(response.token);
       dispatch({ type: 'AUTH_SUCCESS', payload: response });
       return response;
     } catch (error) {
@@ -116,9 +110,14 @@ export const AuthProvider = ({ children }) => {
     window.location.href = `${API_URL}/auth/google`;
   };
 
-  const logout = () => {
-    removeAuthToken();
-    dispatch({ type: 'LOGOUT' });
+  const logout = async () => {
+    try {
+      await api.auth.logout();
+      dispatch({ type: 'LOGOUT' });
+    } catch (error) {
+      // Even if logout request fails, clear the local state
+      dispatch({ type: 'LOGOUT' });
+    }
   };
 
   const clearError = () => {
@@ -148,3 +147,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

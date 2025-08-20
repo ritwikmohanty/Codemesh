@@ -15,14 +15,9 @@ const apiRequest = async (endpoint, options = {}) => {
       'Content-Type': 'application/json',
       ...options.headers,
     },
+    credentials: 'include', // Include cookies
     ...options,
   };
-
-  // Add auth token if available
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
 
   try {
     const response = await fetch(url, config);
@@ -51,17 +46,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(credentials),
     }),
+    logout: () => apiRequest('/logout', {
+      method: 'POST',
+    }),
     getProfile: () => apiRequest('/profile'),
     refreshToken: () => apiRequest('/refresh', { method: 'POST' }),
   },
-};
-
-export const setAuthToken = (token) => {
-  localStorage.setItem('token', token);
-};
-
-export const removeAuthToken = () => {
-  localStorage.removeItem('token');
 };
 
 export { ApiError };

@@ -178,7 +178,9 @@ const CalendarPage = () => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/contests`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/contests`, {
+        credentials: 'include' // Include cookies
+      });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -207,7 +209,8 @@ const CalendarPage = () => {
       setLoading(true);
       
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/contests/sync`, {
-        method: 'POST'
+        method: 'POST',
+        credentials: 'include' // Include cookies
       });
       
       if (!response.ok) {
@@ -269,21 +272,8 @@ const CalendarPage = () => {
 
   const loadNotificationPreferences = async () => {
     try {
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-
-      // Add auth token if user is authenticated
-      if (isAuthenticated) {
-        const token = localStorage.getItem('token');
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-      }
-
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/notifications/preferences`, {
-        headers,
-        credentials: 'include'
+        credentials: 'include' // Include cookies
       });
       
       if (response.ok) {
@@ -310,7 +300,9 @@ const CalendarPage = () => {
       const registration = await navigator.serviceWorker.ready;
       
       // Get VAPID public key from server
-      const vapidResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/notifications/vapid-public-key`);
+      const vapidResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/notifications/vapid-public-key`, {
+        credentials: 'include' // Include cookies
+      });
       const vapidData = await vapidResponse.json();
       
       if (!vapidData.success || !vapidData.publicKey) {
@@ -644,8 +636,10 @@ const CalendarPage = () => {
 
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/notifications/preferences`, {
         method: 'POST',
-        headers,
-        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Include cookies
         body: JSON.stringify(requestBody)
       });
 
@@ -707,8 +701,10 @@ const CalendarPage = () => {
 
         await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/notifications/preferences`, {
           method: 'POST',
-          headers,
-          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // Include cookies
           body: JSON.stringify({
             ...notificationPreferences,
             enabled: false,
@@ -740,8 +736,10 @@ const CalendarPage = () => {
 
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1'}/notifications/test`, {
         method: 'POST',
-        headers,
-        credentials: 'include'
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include' // Include cookies
       });
 
       console.log('Test notification response status:', response.status);
