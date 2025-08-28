@@ -5,6 +5,7 @@ import LandingPage from './Pages/LandingPage'
 import CalendarPage from './Pages/CalendarPage'
 import './index.css'
 import { ThemeProvider } from "@/components/ui/theme-provider"
+import Portfolio from './Pages/Portfolio'
 
 const App = () => {
     return (
@@ -18,6 +19,7 @@ const App = () => {
                 <Routes>
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/calendar" element={<CalendarPage />} />
+                    <Route path="/portfolio" element={<Portfolio />} />
                 </Routes>
             </ThemeProvider>
             </BrowserRouter>

@@ -100,7 +100,7 @@ body {
   --chart-3: 0 72.2222% 50.5882%;
   --chart-4: 43.2558 96.4126% 56.2745%;
   --chart-5: 37.6923 92.1260% 50.1961%;
-  --sidebar: 24 9.8039% 10%;
+  --sidebar: 12.0000 6.4935% 15.0980%;
   --sidebar-foreground: 60 4.7619% 95.8824%;
   --sidebar-primary: 0 73.7089% 41.7647%;
   --sidebar-primary-foreground: 24 33.3333% 97.0588%;
@@ -134,7 +134,7 @@ body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
   }
-  
+
 }
 @layer utilities {
   .calendar-cell {
@@ -196,4 +196,15 @@ body {
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;     /* Firefox */
+}
+
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

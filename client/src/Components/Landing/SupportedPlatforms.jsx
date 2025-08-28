@@ -1,4 +1,4 @@
-import CountUp from './ui/CountUp'
+import CountUp from '../ui/CountUp'
 import { VelocityScroll } from '@/components/ui/scrollbasedvelocity';
 
 export default function Page() {

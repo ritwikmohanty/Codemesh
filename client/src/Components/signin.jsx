@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-export default function SignIn({ children, isDialogOpen, onOpenChange }) {
+export default function SignIn({ children, isDialogOpen, onOpenChange, stayOnCurrentPage = false }) {
   const id = useId()
   const navigate = useNavigate()
   const location = useLocation()
@@ -56,7 +56,11 @@ export default function SignIn({ children, isDialogOpen, onOpenChange }) {
         password: formData.password
       })
       onOpenChange?.(false)
-      // Optionally navigate to dashboard or refresh page
+      
+      // Only navigate if not staying on current page
+      if (!stayOnCurrentPage) {
+        // Optionally navigate to dashboard or refresh page
+      }
     } catch (err) {
       // Error is handled by context
       console.error('Sign in failed:', err.message)
@@ -64,7 +68,7 @@ export default function SignIn({ children, isDialogOpen, onOpenChange }) {
   }
 
   const handleGoogleSignIn = () => {
-    signInWithGoogle();
+    signInWithGoogle(stayOnCurrentPage);
   }
 
   return (

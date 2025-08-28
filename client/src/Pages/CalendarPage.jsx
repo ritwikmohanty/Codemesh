@@ -41,9 +41,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Clock, Globe, Bell, Calendar, Filter, ChevronDown, X, Settings, User, Download, Plus } from 'lucide-react';
-import Navbar from '../Components/Navbar.jsx';
+// import Navbar from '../Components/Navbar.jsx';
 import { useAuth } from '../contexts/AuthContext';
 import { addToCalendar, generateGoogleCalendarURL, generateOutlookCalendarURL } from '../utils/calendarUtils';
+import { AppSidebar } from '../components/sidebar/app-sidebar.jsx';
 
 const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
@@ -900,8 +901,10 @@ const CalendarPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <div>
+    {/* <div className="min-h-screen bg-background"> */}
+      {/* <Navbar /> */}
+      <AppSidebar variant="inset">
       
       <div className="container mx-auto max-w-7xl px-4 py-8">
         <div className="mb-8">
@@ -1498,6 +1501,7 @@ const CalendarPage = () => {
           </div>
         )}
       </div>
+      </AppSidebar>
     </div>
   );
 };

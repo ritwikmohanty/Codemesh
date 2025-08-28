@@ -60,11 +60,18 @@ export const AuthProvider = ({ children }) => {
     const success = urlParams.get('success');
     const error = urlParams.get('error');
 
+    // console.log('Current URL:', window.location.href);
+    // console.log('Current path:', window.location.pathname); 
+    // console.log('OAuth success:', success); 
+
     if (success === 'oauth_success') {
       // OAuth was successful, check auth to get user data
       checkAuth();
-      // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // Clean up URL parameters without changing the path
+      const currentPath = window.location.pathname;
+      // console.log('Cleaning URL, staying on path:', currentPath); 
+      window.history.replaceState({}, document.title, currentPath);
     } else if (error) {
       dispatch({ type: 'AUTH_ERROR', payload: 'Authentication failed. Please try again.' });
       // Clean up URL
@@ -106,8 +113,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signInWithGoogle = () => {
-    window.location.href = `${API_URL}/auth/google`;
+  const signInWithGoogle = (stayOnCurrentPage = false) => {
+    // Get current path if we want to stay on the current page
+    const currentPath = stayOnCurrentPage && window.location.pathname !== '/' 
+      ? window.location.pathname 
+      : '/';
+    
+    console.log('Starting Google OAuth from path:', currentPath); // Debug log
+    
+    // Pass redirect path as query parameter to the OAuth URL
+    const redirectParam = currentPath !== '/' ? `?redirect=${encodeURIComponent(currentPath)}` : '';
+    const oauthUrl = `${API_URL}/auth/google${redirectParam}`;
+    
+    console.log('OAuth URL:', oauthUrl); // Debug log
+    
+    window.location.href = oauthUrl;
   };
 
   const logout = async () => {

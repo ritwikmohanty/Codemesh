@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-export default function SignUp({ children, isDialogOpen, onOpenChange }) {
+export default function SignUp({ children, isDialogOpen, onOpenChange, stayOnCurrentPage = false }) {
   const id = useId()
   const navigate = useNavigate()
   const location = useLocation()
@@ -52,7 +52,11 @@ export default function SignUp({ children, isDialogOpen, onOpenChange }) {
     try {
       await signup(formData)
       onOpenChange?.(false)
-      // Optionally navigate to dashboard or show success message
+      
+      // Only navigate if not staying on current page
+      if (!stayOnCurrentPage) {
+        // Optionally navigate to dashboard or show success message
+      }
     } catch (err) {
       // Error is handled by context
       console.error('Sign up failed:', err.message)
@@ -60,7 +64,7 @@ export default function SignUp({ children, isDialogOpen, onOpenChange }) {
   }
 
   const handleGoogleSignUp = () => {
-    signInWithGoogle();
+    signInWithGoogle(stayOnCurrentPage);
   }
 
   return (

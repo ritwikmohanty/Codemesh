@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useId } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import LogoLight from '/codemesh.png';
-import LogoDark from '/codemeshdark.png';
+import LogoLight from '/Logof.png';
+import LogoDark from '/Logod.png';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,10 +12,50 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import SignIn from './signin';
-import SignUp from './signup';
-import ThemeToggleButton from "@/components/ui/theme-toggle-button"
+import SignIn from './signin.jsx';
+import SignUp from './signup.jsx';
+import ThemeToggleButton from "@/components/ui/theme-toggle-button";
+import { Button } from "@/components/ui/button";
 
+// Custom hook to detect theme changes
+const useTheme = () => {
+    const [isDark, setIsDark] = useState(false);
+
+    useEffect(() => {
+        // Initial theme check
+        const checkTheme = () => {
+            if (typeof window !== "undefined") {
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                setIsDark(isDarkMode);
+            }
+        };
+
+        // Check theme immediately
+        checkTheme();
+
+        // Create a MutationObserver to watch for class changes on the document element
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    checkTheme();
+                }
+            });
+        });
+
+        // Observe the document element for class changes
+        if (typeof window !== "undefined") {
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+        }
+
+        // Cleanup observer on unmount
+        return () => observer.disconnect();
+    }, []);
+
+    return isDark;
+};
 
 const MenuIcon = () => (
      <svg className="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
@@ -31,6 +71,7 @@ const Navbar = () => {
     const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false);
     const { isAuthenticated, user, logout } = useAuth();
     const location = useLocation();
+    const isDarkTheme = useTheme();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -75,13 +116,9 @@ const Navbar = () => {
                 {/* Logo */}
                 <a href="#" className="flex items-center space-x-2">
                     <img
-                        src={
-                            typeof window !== "undefined" && document.documentElement.classList.contains('dark')
-                                ? LogoDark
-                                : LogoLight
-                        }
+                        src={isDarkTheme ? LogoDark : LogoLight}
                         alt="CodeMesh"
-                        className="h-8 w-auto object-contain"
+                        className="h-7 w-auto object-contain rounded "
                     />
                     <span className="font-bold text-lg text-foreground">CodeMesh</span>
                 </a>
@@ -90,7 +127,7 @@ const Navbar = () => {
                 <div className="hidden md:flex items-center space-x-2">
                     <ul className="flex items-center space-x-2">
                         <li><a href="/" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Home</a></li>
-                        <li><a href="#" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Portfolio</a></li>
+                        <li><a href="/portfolio" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Portfolio</a></li>
                         <li><a href="#" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Leaderboard</a></li>
                         <li><a href="/calendar" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Calendar</a></li>
                     </ul>
@@ -146,9 +183,9 @@ const Navbar = () => {
                                 isDialogOpen={isSignUpDialogOpen} 
                                 onOpenChange={setIsSignUpDialogOpen}
                             >
-                                <button className="px-4 py-2 text-sm font-semibold rounded-md transition-colors bg-primary text-primary-foreground">
+                                <Button className="px-4 py-2">
                                     Get Started
-                                </button>
+                                </Button>
                             </SignUp>
                             <ThemeToggleButton showLabel variant="circle-blur" start="top-right" />
                         </>
@@ -223,9 +260,9 @@ const Navbar = () => {
                                         isDialogOpen={isSignUpDialogOpen} 
                                         onOpenChange={setIsSignUpDialogOpen}
                                     >
-                                        <button className="w-full text-center px-4 py-2 text-sm font-semibold rounded-md transition-colors bg-primary text-primary-foreground">
+                                        <Button className="w-full text-center">
                                             Get Started
-                                        </button>
+                                        </Button>
                                     </SignUp>
                                 </div>
                                 <div className="mt-3 px-4">

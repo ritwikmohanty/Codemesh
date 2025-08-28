@@ -209,9 +209,22 @@ export const refreshToken = async (req, res) => {
 };
 
 // Google OAuth initiate
-export const googleAuth = passport.authenticate('google', {
-  scope: ['profile', 'email']
-});
+export const googleAuth = (req, res, next) => {
+  const redirectPath = req.query.redirect;
+  console.log('Starting OAuth with redirect:', redirectPath); // Debug log
+  
+  // Use passport authenticate with state parameter
+  const authenticateOptions = {
+    scope: ['profile', 'email']
+  };
+  
+  // Add state parameter if redirect path exists
+  if (redirectPath) {
+    authenticateOptions.state = encodeURIComponent(redirectPath);
+  }
+  
+  passport.authenticate('google', authenticateOptions)(req, res, next);
+};
 
 // Google OAuth callback
 export const googleCallback = (req, res, next) => {
@@ -229,8 +242,26 @@ export const googleCallback = (req, res, next) => {
     const token = generateToken(user._id);
     res.cookie('authToken', token, setCookieOptions);
     
-    // Redirect to frontend with success flag
-    res.redirect(`${process.env.CLIENT_URL}?success=oauth_success`);
+    // Get redirect path from state parameter
+    const redirectPath = req.query.state ? decodeURIComponent(req.query.state) : '/';
+    
+    console.log('OAuth callback - state parameter:', req.query.state); // Debug log
+    console.log('OAuth callback - decoded redirect:', redirectPath); // Debug log
+    
+    // Construct the redirect URL
+    let clientRedirectUrl;
+    if (redirectPath && redirectPath !== '/') {
+      // For non-homepage paths, redirect to that path with success parameter
+      clientRedirectUrl = `${process.env.CLIENT_URL}${redirectPath}?success=oauth_success`;
+    } else {
+      // For homepage, just add success parameter
+      clientRedirectUrl = `${process.env.CLIENT_URL}/?success=oauth_success`;
+    }
+    
+    console.log('Final redirect URL:', clientRedirectUrl); // Debug log
+    
+    // Redirect to frontend with success flag and original path
+    res.redirect(clientRedirectUrl);
   })(req, res, next);
 };
 

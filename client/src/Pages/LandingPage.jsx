@@ -1,10 +1,10 @@
 import React from 'react'
-import Navbar from '../Components/Navbar.jsx'
-import GradientHero from '../Components/Hero.jsx'
-import SupportedPlatforms from '../Components/SupportedPlatforms.jsx'
-import FAQ from '../Components/FAQ.jsx'
-import Grid from '../Components/Grid.jsx'
-import BrandingFooter from '../Components/Footer.jsx'
+import Navbar from '../components/Navbar.jsx'
+import GradientHero from '../components/Landing/Hero.jsx'
+import SupportedPlatforms from '../components/Landing/SupportedPlatforms.jsx'
+import FAQ from '../components/Landing/FAQ.jsx'
+import Grid from '../components/Landing/Grid.jsx'
+import BrandingFooter from '../components/Landing/Footer.jsx'
 
 function LandingPage() {
   return (
