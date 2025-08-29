@@ -11,41 +11,127 @@ const profileSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  platformData: [{
-    platformName: {
+  linkedAccounts: [{
+    platform: {
+      type: String,
+      required: true,
+      enum: ['codeforces', 'leetcode', 'codechef', 'hackerrank', 'atcoder', 'geeksforgeeks', 'code360', 'hackerearth']
+    },
+    handle: {
       type: String,
       required: true
+    },
+    isVerified: {
+      type: Boolean,
+      default: false
     },
     rating: {
       type: Number,
       default: 0
     },
-    rank: mongoose.Schema.Types.Mixed,
-    problemsSolvedCount: {
+    maxRating: {
       type: Number,
       default: 0
     },
-    lastSyncAt: {
+    rank: {
+      type: String,
+      default: ''
+    },
+    stars: {
+      type: Number,
+      default: 0
+    },
+    totalSolved: {
+      type: Number,
+      default: 0
+    },
+    lastSynced: {
       type: Date,
       default: Date.now
     }
   }],
-  solvedProblems: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Problem'
-  }],
-  topicStats: {
+  overallStats: {
+    totalSolved: { type: Number, default: 0 },
+    cpSolved: { type: Number, default: 0 },
+    dsaSolved: { type: Number, default: 0 },
+    fundamentalsSolved: { type: Number, default: 0 },
+    difficulty: {
+      easy: { type: Number, default: 0 },
+      medium: { type: Number, default: 0 },
+      hard: { type: Number, default: 0 },
+      expert: { type: Number, default: 0 }
+    },
+    accuracy: { type: Number, default: 0 },
+    averageAttempts: { type: Number, default: 0 }
+  },
+  platformStats: {
     type: Map,
     of: {
-      solved: { type: Number, default: 0 },
-      score: { type: Number, default: 0 }
+      totalSolved: { type: Number, default: 0 },
+      difficulty: {
+        easy: { type: Number, default: 0 },
+        medium: { type: Number, default: 0 },
+        hard: { type: Number, default: 0 },
+        expert: { type: Number, default: 0 }
+      },
+      accuracy: { type: Number, default: 0 },
+      averageAttempts: { type: Number, default: 0 }
     },
     default: {}
   },
-  activityHeatmap: {
+  streaks: {
+    currentStreak: { type: Number, default: 0 },
+    maxStreak: { type: Number, default: 0 },
+    activeDays: { type: Number, default: 0 }
+  },
+  heatmapData: {
+    overall: {
+      type: Map,
+      of: Number,
+      default: {}
+    },
+    byPlatform: {
+      type: Map,
+      of: {
+        type: Map,
+        of: Number
+      },
+      default: {}
+    }
+  },
+  topicDistribution: {
+    overall: {
+      type: Map,
+      of: Number,
+      default: {}
+    },
+    byPlatform: {
+      type: Map,
+      of: {
+        type: Map,
+        of: Number
+      },
+      default: {}
+    }
+  },
+  languagesUsed: {
     type: Map,
     of: Number,
     default: {}
+  },
+  badges: [{
+    name: String,
+    description: String,
+    iconUrl: String,
+    earnedAt: { type: Date, default: Date.now }
+  }],
+  recentSubmissions: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Submission'
+  }],
+  lastRefresh: {
+    type: Date,
+    default: Date.now
   },
   updatedAt: {
     type: Date,
@@ -54,6 +140,7 @@ const profileSchema = new mongoose.Schema({
 });
 
 profileSchema.index({ codeMeshRating: -1 });
-// profileSchema.index({ user: 1 });
+profileSchema.index({ 'linkedAccounts.platform': 1 });
+profileSchema.index({ 'overallStats.totalSolved': -1 });
 
 export default mongoose.model('Profile', profileSchema);

@@ -9,6 +9,11 @@ import cookieParser from "cookie-parser";
 
 // Import models to register them with Mongoose
 import './models/User.js';
+import './models/Problem.js';
+import './models/Profile.js';
+import './models/Contest.js';
+import './models/RatingHistory.js';
+import './models/Submission.js';
 
 // Import passport AFTER dotenv.config()
 import passport from "./config/passport.js";
@@ -17,6 +22,8 @@ import passport from "./config/passport.js";
 import authRoutes from './routes/authRoutes.js';
 import contestRoutes from './routes/contestRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 
 // Import schedulers
 import { startContestScheduler } from './schedulers/contestScheduler.js';
@@ -82,6 +89,8 @@ try {
   app.use('/api/v1', authRoutes);
   app.use('/api/v1', contestRoutes);
   app.use('/api/v1', notificationRoutes);
+  app.use('/api/v1', profileRoutes);
+  app.use('/api/v1', dashboardRoutes);
 } catch (routeErr) {
   console.error('Route registration error:', routeErr);
   throw routeErr;

@@ -44,6 +44,45 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  bio: {
+    type: String,
+    maxlength: 500,
+    trim: true,
+    default: ''
+  },
+  college: {
+    type: String,
+    maxlength: 100,
+    trim: true,
+    default: ''
+  },
+  location: {
+    type: String,
+    maxlength: 100,
+    trim: true,
+    default: ''
+  },
+  nationality: {
+    type: String,
+    maxlength: 50,
+    trim: true,
+    default: ''
+  },
+  socials: {
+    github: { type: String, default: '' },
+    linkedin: { type: String, default: '' },
+    twitter: { type: String, default: '' },
+    website: { type: String, default: '' }
+  },
+  profileViews: {
+    type: Number,
+    default: 0
+  },
+  shareId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
   handles: {
     type: Map,
     of: String,
