@@ -16,13 +16,13 @@ export default function Page() {
 
   return (
     <div
-      className="h-[400px] mt-20 w-screen overflow-hidden"
+      className="h-[400px] mt-40 w-screen overflow-hidden"
       style={{
         backgroundColor: 'hsl(var(--background))',
         fontFamily: 'var(--font-sans)',
       }}
     >
-      <div className="mx-auto w-screen max-w-5xl px-6">
+      <div className="mx-auto w-screen max-w-6xl">
         <div
           className="text-center text-3xl font-semibold"
           style={{

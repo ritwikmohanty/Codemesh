@@ -112,6 +112,12 @@ module.exports = {
   				to: {
   					height: '0'
   				}
+  			},
+  			blob: {
+  				'0%':   { transform: 'translate(0px, 0px) scale(1)' },
+  				'33%':  { transform: 'translate(10px, -12px) scale(1.05)' },
+  				'66%':  { transform: 'translate(-12px, 8px) scale(0.98)' },
+  				'100%': { transform: 'translate(0px, 0px) scale(1)' },
   			}
   		},
   		boxShadow: {
@@ -127,7 +133,8 @@ module.exports = {
   		animation: {
   			'slide-down-fade': 'slideDownFadeIn 300ms ease-out both',
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			blob: 'blob 14s ease-in-out infinite'
   		},
   		letterSpacing: {
   			normal: 'var(--tracking-normal)'
