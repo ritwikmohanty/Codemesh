@@ -1,0 +1,661 @@
+{
+	"info": {
+		"_postman_id": "545035aa-4dd5-4cd4-bb43-ae9c31262158",
+		"name": "CodeMesh API Collection",
+		"description": "Complete API documentation for CodeMesh server. Includes authentication, contests, notifications, profiles, and dashboards. Base URL: {{base_url}} (e.g., http://localhost:3000). Set auth_token for protected routes.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "44224372"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Signup",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/signup",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"signup"
+							]
+						},
+						"description": "Register a new user. Requires name, email, and password (min 6 chars). Sets auth cookie on success."
+					},
+					"response": []
+				},
+				{
+					"name": "Signin",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/signin",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"signin"
+							]
+						},
+						"description": "Login with email and password. Sets auth cookie on success. Use response token for protected routes."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"profile"
+							]
+						},
+						"description": "Get authenticated user's profile. Requires Bearer token."
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/refresh",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"refresh"
+							]
+						},
+						"description": "Refresh JWT token. Requires Bearer token."
+					},
+					"response": []
+				},
+				{
+					"name": "Google OAuth Initiate",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/google?redirect=/dashboard",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"google"
+							],
+							"query": [
+								{
+									"key": "redirect",
+									"value": "/dashboard"
+								}
+							]
+						},
+						"description": "Initiate Google OAuth login. Redirects to Google. Optional 'redirect' query param for post-login path."
+					},
+					"response": []
+				},
+				{
+					"name": "Google OAuth Callback",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/google/callback",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"google",
+								"callback"
+							]
+						},
+						"description": "OAuth callback (handled server-side). Not typically called directly in Postman."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Logout user. Clears auth cookie."
+					},
+					"response": []
+				},
+				{
+					"name": "Get OAuth User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/oauth-user",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"oauth-user"
+							]
+						},
+						"description": "Get OAuth user data. Requires Bearer token."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Contests",
+			"item": [
+				{
+					"name": "Get Contests",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/contests?platform=codeforces&status=upcoming&limit=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"contests"
+							],
+							"query": [
+								{
+									"key": "platform",
+									"value": "codeforces"
+								},
+								{
+									"key": "status",
+									"value": "upcoming"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get contests with filters. Optional: platform, status, difficulty, limit."
+					},
+					"response": []
+				},
+				{
+					"name": "Sync Contests",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/contests/sync",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"contests",
+								"sync"
+							]
+						},
+						"description": "Manually sync contests from platforms."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Contest Statuses",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/contests/update-statuses",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"contests",
+								"update-statuses"
+							]
+						},
+						"description": "Update contest statuses (ongoing, completed)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Contest Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/contests/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"contests",
+								"stats"
+							]
+						},
+						"description": "Get contest statistics."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Notifications",
+			"item": [
+				{
+					"name": "Get VAPID Public Key",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/notifications/vapid-public-key",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"vapid-public-key"
+							]
+						},
+						"description": "Get VAPID public key for push notifications."
+					},
+					"response": []
+				},
+				{
+					"name": "Save Notification Preferences",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"enabled\": true,\n  \"methods\": [\"push\"],\n  \"platforms\": [\"all\"],\n  \"difficulties\": [\"all\"],\n  \"durations\": [\"all\"],\n  \"reminderTime\": 60,\n  \"timezone\": \"UTC\",\n  \"pushSubscription\": {}\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/notifications/preferences",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"preferences"
+							]
+						},
+						"description": "Save notification preferences. Supports authenticated and anonymous users."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Notification Preferences",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/notifications/preferences",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"preferences"
+							]
+						},
+						"description": "Get notification preferences. Supports authenticated and anonymous users."
+					},
+					"response": []
+				},
+				{
+					"name": "Subscribe to Push Notifications",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"subscription\": {}\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/notifications/subscribe",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"subscribe"
+							]
+						},
+						"description": "Subscribe to push notifications. Supports authenticated and anonymous users."
+					},
+					"response": []
+				},
+				{
+					"name": "Test Notification",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/notifications/test",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"test"
+							]
+						},
+						"description": "Send a test notification. Requires push subscription."
+					},
+					"response": []
+				},
+				{
+					"name": "Clear Notification Settings",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/notifications/clear",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"clear"
+							]
+						},
+						"description": "Clear all notification settings (debugging)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Profiles",
+			"item": [
+				{
+					"name": "Sync Platform Data",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"platform\": \"{{platform}}\",\n  \"handle\": \"{{handle}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/profile/sync",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"profile",
+								"sync"
+							]
+						},
+						"description": "Sync user data from a platform. Requires Bearer token."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"profile"
+							]
+						},
+						"description": "Get authenticated user's profile. Requires Bearer token."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Public Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/profile/{{username}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"profile",
+								"{{username}}"
+							]
+						},
+						"description": "Get public profile by username."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Dashboards",
+			"item": [
+				{
+					"name": "Get My Dashboard",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/dashboard/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"dashboard",
+								"me"
+							]
+						},
+						"description": "Get authenticated user's dashboard. Requires Bearer token."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dashboard by Username",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/dashboard/{{username}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"dashboard",
+								"{{username}}"
+							]
+						},
+						"description": "Get dashboard by username."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Dashboard Summary",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/dashboard/{{username}}/summary",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"dashboard",
+								"{{username}}",
+								"summary"
+							]
+						},
+						"description": "Get dashboard summary by username."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "username",
+			"value": "example_user",
+			"type": "string"
+		},
+		{
+			"key": "platform",
+			"value": "codeforces",
+			"type": "string"
+		},
+		{
+			"key": "handle",
+			"value": "example_handle",
+			"type": "string"
+		}
+	]
+}

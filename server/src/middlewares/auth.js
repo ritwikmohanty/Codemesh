@@ -8,20 +8,51 @@ export const authenticateToken = async (req, res, next) => {
                   (req.headers['authorization'] && req.headers['authorization'].split(' ')[1]);
 
     if (!token) {
-      return res.status(401).json({ message: 'Access token required' });
+      return res.status(401).json({ 
+        success: false,
+        message: 'Access token required',
+        debug: 'No authorization header or token provided'
+      });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (jwtError) {
+      return res.status(403).json({
+        success: false,
+        message: 'Invalid or expired token',
+        debug: jwtError.message
+      });
+    }
+
+    if (!decoded || !decoded.userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Invalid token structure',
+        debug: 'Token does not contain userId'
+      });
+    }
+
     const user = await User.findById(decoded.userId).select('-password');
     
     if (!user) {
-      return res.status(401).json({ message: 'Invalid token' });
+      return res.status(401).json({ 
+        success: false,
+        message: 'User not found',
+        debug: 'User associated with token no longer exists'
+      });
     }
 
     req.user = user;
     next();
   } catch (error) {
-    return res.status(403).json({ message: 'Invalid or expired token' });
+    console.error('Auth middleware error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Authentication error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -32,13 +63,23 @@ export const optionalAuth = async (req, res, next) => {
                   (req.headers['authorization'] && req.headers['authorization'].split(' ')[1]);
 
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.findById(decoded.userId).select('-password');
-      req.user = user;
+      let decoded;
+      try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+      } catch (jwtError) {
+        // For optional auth, silently ignore JWT errors
+        return next();
+      }
+
+      if (decoded && decoded.userId) {
+        const user = await User.findById(decoded.userId).select('-password');
+        req.user = user;
+      }
     }
     
     next();
   } catch (error) {
-    next();
+    console.error('Optional auth middleware error:', error);
+    next(); // Continue without failing
   }
 };
