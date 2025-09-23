@@ -1,4 +1,4 @@
-import CodeforcesService from '../services/platform/codeforcesService.js';
+// import CodeforcesService from '../services/platform/codeforcesService.js'; // DEPRECATED: Only used by old syncPlatformData implementation
 import User from '../models/User.js';
 import Profile from '../models/Profile.js';
 import Problem from '../models/Problem.js';
@@ -21,8 +21,21 @@ import {
 } from '../utils/analyticsCalculator.js';
 
 /**
- * Get platform service instance based on platform name
+ * Sanitize language name to be compatible with Mongoose Map
+ * Replaces dots and other problematic characters with underscores
  */
+function sanitizeLanguageName(language) {
+  if (!language || typeof language !== 'string') {
+    return 'Unknown';
+  }
+  return language.replace(/[.\s]+/g, '_').replace(/[^\w\-_+#]/g, '');
+}
+
+/**
+ * Get platform service instance based on platform name
+ * DEPRECATED: Only used by old syncPlatformData implementation
+ */
+/*
 function getPlatformService(platform) {
   switch (platform.toLowerCase()) {
     case 'codeforces':
@@ -31,13 +44,197 @@ function getPlatformService(platform) {
       throw new Error(`Platform ${platform} is not supported yet`);
   }
 }
+*/
 
 /**
  * Sync platform data for a user
  */
 export async function syncPlatformData(req, res) {
   try {
+    // DEPRECATION NOTICE
+    console.warn('WARNING: /api/v1/profile/sync is deprecated. Use /api/v1/platform/sync instead.');
+    
+    return res.status(200).json({
+      success: false,
+      deprecated: true,
+      message: 'This endpoint is deprecated. Please use /api/v1/platform/sync for new implementations.',
+      newEndpoint: '/api/v1/platform/sync',
+      migration: {
+        description: 'The new architecture provides unified portfolio views and platform-specific detailed views',
+        unifiedPortfolio: '/api/v1/portfolio/:username',
+        platformSpecific: '/api/v1/platform/:username/:platform'
+      }
+    });
+
+    /*
+    // OLD IMPLEMENTATION - COMMENTED OUT FOR TESTING NEW ARCHITECTURE
     const { platform, handle } = req.body;
+    const userId = req.user._id;
+
+    if (!platform || !handle) {
+      return res.status(400).json({
+        success: false,
+        message: 'Platform and handle are required'
+      });
+    }
+
+    // Validate platform
+    const supportedPlatforms = ['codeforces', 'leetcode', 'codechef', 'hackerrank', 'atcoder', 'geeksforgeeks', 'code360', 'hackerearth'];
+    if (!supportedPlatforms.includes(platform.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Unsupported platform'
+      });
+    }
+
+    // Get platform service
+    const service = getPlatformService(platform);
+
+    // Validate handle exists on platform
+    const isValidHandle = await service.validateHandle(handle);
+    if (!isValidHandle) {
+      return res.status(400).json({
+        success: false,
+        message: `Handle ${handle} does not exist on ${platform}`
+      });
+    }
+
+    // Fetch all data concurrently
+    console.log(`Starting data sync for ${handle} on ${platform}...`);
+    
+    const [userInfo, allSubmissions, ratingHistory] = await Promise.all([
+      service.getUserInfo(handle),
+      service.getAllSubmissions(handle),
+      service.getRatingHistory(handle)
+    ]);
+
+    console.log(`Fetched ${allSubmissions.length} submissions and ${ratingHistory.length} rating changes`);
+
+    // Process submissions - add missing fields and ensure problems exist
+    const processedSubmissions = [];
+    const problemsToCreate = [];
+    const problemMap = new Map();
+
+    for (const submission of allSubmissions) {
+      const processed = await processSubmission(submission, platform, userId, problemMap);
+      if (processed) {
+        processedSubmissions.push(processed);
+      }
+    }
+
+    // Process rating history
+    const processedRatingHistory = [];
+    
+    for (const change of ratingHistory) {
+      const processed = processRatingChange(change, platform, userId);
+      if (processed) {
+        processedRatingHistory.push(processed);
+      }
+    }
+
+    // Database operations
+    console.log('Starting database operations...');
+
+    // Clear old data for this user and platform
+    await Promise.all([
+      Submission.deleteMany({ user: userId, platform: platform }),
+      RatingHistory.deleteMany({ user: userId, platform: platform })
+    ]);
+
+    // Create new problems if needed
+    if (problemsToCreate.length > 0) {
+      await Problem.insertMany(problemsToCreate, { ordered: false });
+    }
+
+    // Insert new data
+    if (processedSubmissions.length > 0) {
+      await Submission.insertMany(processedSubmissions, { ordered: false });
+    }
+
+    if (processedRatingHistory.length > 0) {
+      await RatingHistory.insertMany(processedRatingHistory, { ordered: false });
+    }
+
+    // Calculate analytics
+    console.log('Calculating analytics...');
+    
+    // Get all user submissions for overall stats
+    const allUserSubmissions = await Submission.find({ user: userId }).lean();
+    
+    const overallStats = calculateOverallStats(allUserSubmissions);
+    const platformStats = calculatePlatformStats(allUserSubmissions, platform);
+    const heatmapData = calculateHeatmap(allUserSubmissions);
+    const platformHeatmap = calculatePlatformHeatmap(allUserSubmissions, platform);
+    const streaks = calculateStreaks(heatmapData);
+    const topicDistribution = calculateTopicDistribution(allUserSubmissions);
+    const platformTopicDistribution = calculatePlatformTopicDistribution(allUserSubmissions, platform);
+    const difficultyDistribution = calculateDifficultyDistribution(allUserSubmissions);
+    const categoryDistribution = calculateCategoryDistribution(allUserSubmissions);
+    const languageDistribution = calculateLanguageDistribution(allUserSubmissions);
+    const accuracyStats = calculateAccuracyStats(allUserSubmissions);
+    const platformAccuracyStats = calculatePlatformAccuracyStats(allUserSubmissions, platform);
+    const recentSubmissions = getRecentSubmissions(allUserSubmissions);
+
+    // Update profile
+    const profileUpdate = {
+      user: userId,
+      codeMeshRating: calculateCodeMeshRating(allUserSubmissions),
+      linkedAccounts: [{
+        platform: platform,
+        handle: handle,
+        isVerified: true,
+        rating: userInfo.rating || 0,
+        maxRating: userInfo.maxRating || userInfo.rating || 0,
+        rank: userInfo.rank || '',
+        stars: 0,
+        totalSolved: overallStats.totalSolved,
+        lastSynced: new Date()
+      }],
+      overallStats: overallStats,
+      platformStats: {
+        [platform]: platformStats
+      },
+      streaks: streaks,
+      heatmapData: {
+        overall: heatmapData,
+        byPlatform: {
+          [platform]: platformHeatmap
+        }
+      },
+      topicDistribution: {
+        overall: topicDistribution,
+        byPlatform: {
+          [platform]: platformTopicDistribution
+        }
+      },
+      languagesUsed: languageDistribution,
+      recentSubmissions: recentSubmissions.map(sub => sub._id),
+      lastRefresh: new Date(),
+      updatedAt: new Date()
+    };
+
+    await Profile.findOneAndUpdate(
+      { user: userId },
+      profileUpdate,
+      { upsert: true, new: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Platform data synced successfully',
+      data: {
+        platform: platform,
+        handle: handle,
+        submissionsProcessed: processedSubmissions.length,
+        ratingChanges: processedRatingHistory.length,
+        totalSolved: overallStats.totalSolved,
+        currentRating: userInfo.rating,
+        maxRating: userInfo.maxRating
+      }
+    });
+    */
+
+  } catch (error) {
     const userId = req.user._id;
 
     if (!platform || !handle) {
@@ -328,8 +525,15 @@ export async function syncPlatformData(req, res) {
       byPlatform: platformTopics
     };
 
-    // Update languages used
-    profile.languagesUsed = overallStats.languageDistribution || {};
+    // Update languages used with sanitized keys
+    const sanitizedLanguages = new Map();
+    if (overallStats.languageDistribution) {
+      Object.entries(overallStats.languageDistribution).forEach(([lang, count]) => {
+        const sanitizedLang = sanitizeLanguageName(lang);
+        sanitizedLanguages.set(sanitizedLang, count);
+      });
+    }
+    profile.languagesUsed = sanitizedLanguages;
 
     // Update recent submissions
     const recentSubmissionIds = getRecentSubmissions(allUserSubmissions, 10)
@@ -358,6 +562,7 @@ export async function syncPlatformData(req, res) {
       }
     });
 
+    /*
   } catch (error) {
     console.error('Error syncing platform data:', error);
     res.status(500).json({
@@ -366,6 +571,8 @@ export async function syncPlatformData(req, res) {
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
+  */
+}
 }
 
 /**

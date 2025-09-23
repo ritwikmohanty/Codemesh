@@ -14,6 +14,9 @@ import './models/Profile.js';
 import './models/Contest.js';
 import './models/RatingHistory.js';
 import './models/Submission.js';
+import './models/PlatformData.js';
+import './models/PlatformSubmission.js';
+import './models/PlatformRatingHistory.js';
 
 // Import passport AFTER dotenv.config()
 import passport from "./config/passport.js";
@@ -24,6 +27,8 @@ import contestRoutes from './routes/contestRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import portfolioRoutes from './routes/portfolioRoutes.js';
+import platformRoutes from './routes/platformRoutes.js';
 
 // Import schedulers
 import { startContestScheduler } from './schedulers/contestScheduler.js';
@@ -91,6 +96,8 @@ try {
   app.use('/api/v1', notificationRoutes);
   app.use('/api/v1', profileRoutes);
   app.use('/api/v1', dashboardRoutes);
+  app.use('/api/v1', portfolioRoutes);
+  app.use('/api/v1', platformRoutes);
 } catch (routeErr) {
   console.error('Route registration error:', routeErr);
   throw routeErr;

@@ -5,6 +5,19 @@ import RatingHistory from '../models/RatingHistory.js';
 import Problem from '../models/Problem.js';
 
 /**
+ * Convert Map to plain object, handling potential undefined values
+ */
+function mapToObject(map) {
+  if (!map || typeof map !== 'object') {
+    return {};
+  }
+  if (map instanceof Map) {
+    return Object.fromEntries(map);
+  }
+  return map;
+}
+
+/**
  * Get comprehensive dashboard data by username
  */
 export async function getDashboardByUsername(req, res) {
@@ -149,22 +162,22 @@ export async function getDashboardByUsername(req, res) {
       profile: {
         ...profile,
         // Convert Maps to Objects for JSON serialization
-        platformStats: profile.platformStats || {},
+        platformStats: mapToObject(profile.platformStats),
         heatmapData: {
-          overall: profile.heatmapData?.overall || {},
+          overall: mapToObject(profile.heatmapData?.overall),
           byPlatform: Object.fromEntries(
             Object.entries(profile.heatmapData?.byPlatform || {})
-              .map(([platform, data]) => [platform, data])
+              .map(([platform, data]) => [platform, mapToObject(data)])
           )
         },
         topicDistribution: {
-          overall: profile.topicDistribution?.overall || {},
+          overall: mapToObject(profile.topicDistribution?.overall),
           byPlatform: Object.fromEntries(
             Object.entries(profile.topicDistribution?.byPlatform || {})
-              .map(([platform, data]) => [platform, data])
+              .map(([platform, data]) => [platform, mapToObject(data)])
           )
         },
-        languagesUsed: profile.languagesUsed || {}
+        languagesUsed: mapToObject(profile.languagesUsed)
       },
       submissions: {
         recent: recentSubmissions,

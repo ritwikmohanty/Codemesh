@@ -128,7 +128,7 @@ export class ContestAggregatorService {
       // Get contests from database
       const contests = await Contest.find(query)
         .sort({ startTime: 1 })
-        .limit(filters.limit || 100)
+        .limit(filters.limit || 3000)
         .lean(); // Use lean() for better performance
 
       // Transform to frontend format

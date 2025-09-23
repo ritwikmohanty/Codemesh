@@ -13,7 +13,7 @@ router.get('/contests', async (req, res) => {
       platform,
       status,
       difficulty,
-      limit: limit ? parseInt(limit) : 100
+      limit: limit ? parseInt(limit) : 3000
     };
 
     const contests = await contestService.getContests(filters);

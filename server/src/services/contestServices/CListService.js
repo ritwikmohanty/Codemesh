@@ -54,7 +54,7 @@ export class CListService extends BaseContestService {
         params: {
           upcoming: true,
           host: host,
-          limit: 100
+          limit: 3000
         },
         headers: {
           'Authorization': `ApiKey ${this.apiKey}`,
