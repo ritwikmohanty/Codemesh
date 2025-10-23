@@ -120,6 +120,18 @@ class UnificationService {
     const platformSubmissions = allSubmissions.filter(sub => sub.platform === platform);
     const platformRating = allRatingHistory.filter(rating => rating.platform === platform);
 
+    // Calculate total solved based on platform
+    let totalSolved = 0;
+    if (platform === 'leetcode') {
+      // For LeetCode, use submitStats from profile data
+      const submitStats = rawData.profile?.submitStats?.acSubmissionNum || [];
+      const allAcStats = submitStats.find(stat => stat.difficulty === 'All');
+      totalSolved = allAcStats?.count || 0;
+    } else {
+      // For other platforms, count accepted submissions
+      totalSolved = this.countAcceptedSubmissions(platformSubmissions);
+    }
+
     // Add to linked accounts
     unified.linkedAccounts.push({
       platform,
@@ -127,7 +139,7 @@ class UnificationService {
       rating: quickAccess.currentRating || 0,
       maxRating: quickAccess.maxRating || 0,
       rank: quickAccess.rank || '',
-      totalSolved: this.countAcceptedSubmissions(platformSubmissions),
+      totalSolved: totalSolved,
       profileUrl: quickAccess.profileUrl || '',
       avatarUrl: quickAccess.avatarUrl || '',
       lastSynced: platformData.lastSynced,
@@ -144,18 +156,47 @@ class UnificationService {
       this.convertSubmissionToUnified(submission, converter)
     ).filter(Boolean);
 
-    // Update overall stats
-    this.updateOverallStats(unified.overallStats, unifiedSubmissions, platformSubmissions);
+    // For LeetCode, we need to handle difficulty differently since we don't have per-submission difficulty
+    if (platform === 'leetcode') {
+      // Add difficulty distribution from submitStats to overall stats
+      const submitStats = rawData.profile?.submitStats?.acSubmissionNum || [];
+      submitStats.forEach(stat => {
+        if (stat.difficulty && stat.difficulty !== 'All') {
+          const difficultyKey = stat.difficulty.toLowerCase();
+          if (unified.overallStats.difficulty.hasOwnProperty(difficultyKey)) {
+            unified.overallStats.difficulty[difficultyKey] += stat.count;
+          }
+        }
+      });
+      
+      // Update total solved and submissions from submitStats
+      const allAcStats = submitStats.find(stat => stat.difficulty === 'All');
+      const totalStats = rawData.profile?.submitStats?.totalSubmissionNum || [];
+      const allTotalStats = totalStats.find(stat => stat.difficulty === 'All');
+      
+      unified.overallStats.totalSolved += allAcStats?.count || 0;
+      unified.overallStats.totalSubmissions += allTotalStats?.submissions || 0;
+    } else {
+      // Update overall stats for other platforms
+      this.updateOverallStats(unified.overallStats, unifiedSubmissions, platformSubmissions);
+    }
 
     // Update platform-specific stats
     unified.platformStats[platform] = this.calculatePlatformStats(
       platformSubmissions, 
       acceptedSubmissions, 
-      converter
+      converter,
+      platform === 'leetcode' ? rawData.profile : null
     );
 
-    // Update activity data
-    this.updateActivityData(unified.activityData, unifiedSubmissions);
+    // Update activity data - USE ALL SUBMISSIONS for heatmap
+    if (platform === 'leetcode' && rawData.statistics?.submissionHeatmap) {
+      // Use pre-parsed submission calendar from LeetCode
+      this.updateActivityDataFromHeatmap(unified.activityData, rawData.statistics.submissionHeatmap);
+    } else {
+      // Calculate heatmap from all submissions (not just accepted)
+      this.updateActivityDataFromSubmissions(unified.activityData, platformSubmissions);
+    }
 
     // Update topic distribution
     this.updateTopicDistribution(unified.topicDistribution, unifiedSubmissions);
@@ -173,30 +214,98 @@ class UnificationService {
   }
 
   /**
+   * Update activity data from pre-calculated heatmap (LeetCode)
+   * @param {Object} activityData - Activity data object to update
+   * @param {Object} heatmap - Pre-calculated heatmap data
+   */
+  updateActivityDataFromHeatmap(activityData, heatmap) {
+    // Merge heatmap data
+    Object.entries(heatmap).forEach(([date, count]) => {
+      activityData.heatmap[date] = (activityData.heatmap[date] || 0) + count;
+    });
+  }
+
+  /**
+   * Update activity data from all submissions (Codeforces and others)
+   * @param {Object} activityData - Activity data object to update
+   * @param {Array} submissions - ALL submissions to process (not filtered)
+   */
+  updateActivityDataFromSubmissions(activityData, submissions) {
+    // Update heatmap from ALL submissions
+    submissions.forEach(sub => {
+      const dateKey = new Date(sub.quickAccess.timestamp).toISOString().split('T')[0];
+      activityData.heatmap[dateKey] = (activityData.heatmap[dateKey] || 0) + 1;
+    });
+  }
+
+  /**
+   * Update activity heatmap and streak data
+   * @param {Object} activityData - Activity data object to update
+   * @param {Array} submissions - Submissions to process
+   * @deprecated Use updateActivityDataFromSubmissions or updateActivityDataFromHeatmap instead
+   */
+  updateActivityData(activityData, submissions) {
+    // This method is now deprecated in favor of the new methods
+    // Keeping for backwards compatibility
+    this.updateActivityDataFromSubmissions(activityData, submissions.map(sub => ({
+      quickAccess: { timestamp: sub.timestamp }
+    })));
+  }
+
+  /**
    * Convert platform submission to unified format
    * @param {Object} submission - Platform submission
    * @param {Object} converter - Platform converter
    * @returns {Object} Unified submission data
    */
   convertSubmissionToUnified(submission, converter) {
-    const { rawSubmissionData, quickAccess } = submission;
+    const { rawSubmissionData, quickAccess, platform } = submission;
     
     // Extract problem data based on platform
-    const problemData = rawSubmissionData.problem || {};
-    const unifiedProblem = converter.problemToUnified ? 
-      converter.problemToUnified(problemData) : null;
+    let problemData, unifiedProblem, category, topics;
+    
+    if (platform === 'codeforces') {
+      problemData = rawSubmissionData.problem || {};
+      unifiedProblem = converter.problemToUnified ? 
+        converter.problemToUnified(problemData) : null;
 
-    if (!unifiedProblem) return null;
+      if (!unifiedProblem) return null;
 
-    const { category, topics } = converter.tagsToCategories ? 
-      converter.tagsToCategories(problemData.tags || []) : 
-      { category: 'DSA', topics: [] };
+      const categoryTopics = converter.tagsToCategories ? 
+        converter.tagsToCategories(problemData.tags || []) : 
+        { category: 'DSA', topics: [] };
+      
+      category = categoryTopics.category;
+      topics = categoryTopics.topics;
+    } else if (platform === 'leetcode') {
+      // For LeetCode, we need to handle differently since problem data is minimal
+      problemData = quickAccess.problemData || {};
+      
+      // LeetCode uses difficulty directly
+      const difficulty = converter.difficultyToUnified ? 
+        converter.difficultyToUnified(problemData.difficulty || 'Medium') : 'Medium';
+      
+      // Create a simplified unified problem
+      unifiedProblem = {
+        id: quickAccess.problemId,
+        name: quickAccess.problemName,
+        difficulty: difficulty,
+        rating: null,
+        url: `https://leetcode.com/problems/${quickAccess.problemId}`
+      };
+      
+      // For LeetCode, we'll set default category as DSA
+      // In a real implementation, you'd fetch full problem details
+      category = 'DSA';
+      topics = [];
+    } else {
+      return null;
+    }
 
     return {
       problemId: quickAccess.problemId,
       problemName: quickAccess.problemName,
-      difficulty: converter.ratingToDifficulty ? 
-        converter.ratingToDifficulty(problemData.rating) : 'Medium',
+      difficulty: unifiedProblem.difficulty,
       category,
       topics,
       language: quickAccess.language,
@@ -238,14 +347,36 @@ class UnificationService {
    * @param {Array} allSubmissions - All submissions for platform
    * @param {Array} acceptedSubmissions - Accepted submissions for platform
    * @param {Object} converter - Platform converter
+   * @param {Object} profileData - Additional profile data (for LeetCode)
    * @returns {Object} Platform statistics
    */
-  calculatePlatformStats(allSubmissions, acceptedSubmissions, converter) {
+  calculatePlatformStats(allSubmissions, acceptedSubmissions, converter, profileData = null) {
+    let totalSolved, totalSubmissions, acceptanceRate;
+    
+    if (profileData && profileData.submitStats) {
+      // LeetCode: Use submitStats for accurate counts
+      const acStats = profileData.submitStats.acSubmissionNum || [];
+      const totalStats = profileData.submitStats.totalSubmissionNum || [];
+      
+      const allAcStats = acStats.find(stat => stat.difficulty === 'All');
+      const allTotalStats = totalStats.find(stat => stat.difficulty === 'All');
+      
+      totalSolved = allAcStats?.count || 0;
+      totalSubmissions = allTotalStats?.submissions || 0;
+      acceptanceRate = totalSubmissions > 0 ? 
+        ((totalSolved / totalSubmissions) * 100).toFixed(1) : '0.0';
+    } else {
+      // Other platforms: Count from submissions
+      totalSolved = acceptedSubmissions.length;
+      totalSubmissions = allSubmissions.length;
+      acceptanceRate = totalSubmissions > 0 ? 
+        ((totalSolved / totalSubmissions) * 100).toFixed(1) : '0.0';
+    }
+
     const stats = {
-      totalSolved: acceptedSubmissions.length,
-      totalSubmissions: allSubmissions.length,
-      acceptanceRate: allSubmissions.length > 0 ? 
-        (acceptedSubmissions.length / allSubmissions.length * 100).toFixed(1) : 0,
+      totalSolved: totalSolved,
+      totalSubmissions: totalSubmissions,
+      acceptanceRate: acceptanceRate,
       difficulty: { easy: 0, medium: 0, hard: 0, expert: 0 },
       languageDistribution: {},
       topicDistribution: {},
@@ -254,34 +385,33 @@ class UnificationService {
         .slice(0, 10)
     };
 
-    // Calculate difficulty distribution for this platform
-    acceptedSubmissions.forEach(submission => {
-      const problemData = submission.rawSubmissionData.problem || {};
-      const difficulty = converter.ratingToDifficulty ? 
-        converter.ratingToDifficulty(problemData.rating)?.toLowerCase() : 'medium';
-      
-      if (stats.difficulty.hasOwnProperty(difficulty)) {
-        stats.difficulty[difficulty]++;
-      }
-    });
+    if (profileData && profileData.submitStats) {
+      // LeetCode: Get difficulty distribution from submitStats
+      const acStats = profileData.submitStats.acSubmissionNum || [];
+      acStats.forEach(stat => {
+        if (stat.difficulty && stat.difficulty !== 'All') {
+          const difficultyKey = stat.difficulty.toLowerCase();
+          if (stats.difficulty.hasOwnProperty(difficultyKey)) {
+            stats.difficulty[difficultyKey] = stat.count;
+          }
+        }
+      });
+    } else {
+      // Other platforms: Calculate difficulty distribution from submissions
+      acceptedSubmissions.forEach(submission => {
+        const problemData = submission.rawSubmissionData.problem || {};
+        const difficulty = converter.ratingToDifficulty ? 
+          converter.ratingToDifficulty(problemData.rating)?.toLowerCase() : 'medium';
+        
+        if (stats.difficulty.hasOwnProperty(difficulty)) {
+          stats.difficulty[difficulty]++;
+        }
+      });
+    }
 
     return stats;
   }
 
-  /**
-   * Update activity heatmap and streak data
-   * @param {Object} activityData - Activity data object to update
-   * @param {Array} submissions - Submissions to process
-   */
-  updateActivityData(activityData, submissions) {
-    // Update heatmap
-    submissions.forEach(sub => {
-      const dateKey = new Date(sub.timestamp).toISOString().split('T')[0];
-      activityData.heatmap[dateKey] = (activityData.heatmap[dateKey] || 0) + 1;
-    });
-
-    // Calculate streaks (will be done in calculateUnifiedMetrics)
-  }
 
   /**
    * Update topic distribution across platforms
@@ -311,7 +441,6 @@ class UnificationService {
       }
     });
   }
-
   /**
    * Convert platform rating history to unified format
    * @param {Array} ratingHistory - Platform rating history
@@ -351,6 +480,15 @@ class UnificationService {
     }));
     unified.codeMeshRating = UnifiedConverter.calculateCodeMeshRating(platformRatings);
 
+    // Sort heatmap by date (chronologically)
+    const sortedHeatmap = {};
+    Object.keys(unified.activityData.heatmap)
+      .sort((a, b) => new Date(a) - new Date(b))
+      .forEach(date => {
+        sortedHeatmap[date] = unified.activityData.heatmap[date];
+      });
+    unified.activityData.heatmap = sortedHeatmap;
+
     // Calculate streaks from heatmap
     unified.activityData.streaks = this.calculateStreaks(unified.activityData.heatmap);
 
@@ -366,7 +504,7 @@ class UnificationService {
 
   /**
    * Calculate streaks from heatmap data
-   * @param {Object} heatmap - Heatmap data
+   * @param {Object} heatmap - Heatmap data with date keys and activity counts
    * @returns {Object} Streak information
    */
   calculateStreaks(heatmap) {
@@ -375,14 +513,16 @@ class UnificationService {
       return { current: 0, longest: 0, active: false };
     }
 
-    let currentStreak = 0;
-    let longestStreak = 0;
-    let tempStreak = 1;
-
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
+    // Helper function to check if a date has activity
+    const hasActivity = (date) => (heatmap[date] || 0) > 0;
+
     // Calculate longest streak
+    let longestStreak = 1;
+    let tempStreak = 1;
+
     for (let i = 1; i < dates.length; i++) {
       const currentDate = new Date(dates[i]);
       const previousDate = new Date(dates[i - 1]);
@@ -390,31 +530,34 @@ class UnificationService {
 
       if (dayDiff === 1) {
         tempStreak++;
-      } else {
         longestStreak = Math.max(longestStreak, tempStreak);
+      } else {
         tempStreak = 1;
       }
     }
-    longestStreak = Math.max(longestStreak, tempStreak);
 
-    // Calculate current streak
-    let streakEnd = dates.length - 1;
-    while (streakEnd > 0) {
-      const currentDate = new Date(dates[streakEnd]);
-      const previousDate = new Date(dates[streakEnd - 1]);
-      const dayDiff = (currentDate - previousDate) / (1000 * 60 * 60 * 24);
+    // Calculate current streak (ending with today or yesterday)
+    let currentStreak = 0;
+    let checkDate = hasActivity(today) ? today : (hasActivity(yesterday) ? yesterday : null);
 
-      if (dayDiff === 1) {
-        currentStreak++;
-        streakEnd--;
-      } else {
-        break;
+    if (checkDate) {
+      currentStreak = 1; // Start with the current day
+      let prevDate = new Date(checkDate);
+      prevDate.setDate(prevDate.getDate() - 1);
+
+      while (true) {
+        const prevDateKey = prevDate.toISOString().split('T')[0];
+        if (hasActivity(prevDateKey)) {
+          currentStreak++;
+          prevDate.setDate(prevDate.getDate() - 1);
+        } else {
+          break;
+        }
       }
     }
-    if (streakEnd === 0 && dates.length > 0) currentStreak++;
 
-    // Check if streak is active (solved today or yesterday)
-    const active = heatmap[today] > 0 || heatmap[yesterday] > 0;
+    // Check if streak is active (has activity today or yesterday)
+    const active = hasActivity(today) || hasActivity(yesterday);
 
     return {
       current: currentStreak,

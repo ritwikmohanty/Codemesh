@@ -5,7 +5,7 @@
 The backend has been restructured to support both **unified portfolio views** and **platform-specific detailed views**. This new architecture allows users to see:
 
 1. **Unified Portfolio**: Combined statistics from all platforms (Easy/Medium/Hard, unified heatmap, CodeMesh rating)
-2. **Platform-Specific Views**: Detailed statistics in each platform's native format (e.g., Codeforces rating-wise distribution)
+2. **Platform-Specific Views**: Detailed statistics in each platform's native format (e.g., Codeforces rating-wise distribution, LeetCode difficulty breakdown)
 
 ## Architecture Changes
 
@@ -29,15 +29,17 @@ The backend has been restructured to support both **unified portfolio views** an
 - Aggregates cross-platform statistics
 - Creates unified heatmaps and analytics
 
-#### Platform Services (Updated)
-- **`CodeforcesServiceV2`**: Stores raw Codeforces data
-- Future: `LeetCodeService`, `CodeChefService`, etc.
+#### Platform Services
+- **`CodeforcesServiceV2`**: Stores raw Codeforces data (REST API)
+- **`LeetCodeServiceV2`**: Stores raw LeetCode data (GraphQL API)
+- Future: `CodeChefService`, `AtCoderService`, etc.
 - Each service maintains platform-specific data structures
 
 ### 🛠️ Conversion Utilities (`src/utils/platformConverter.js`)
 
 #### Platform Converters
-- **`CodeforcesConverter`**: Maps Codeforces ratings (800-1200) → "Easy"
+- **`CodeforcesConverter`**: Maps Codeforces ratings (800-1200) → "Easy", tags to categories
+- **`LeetCodeConverter`**: Maps LeetCode Easy/Medium/Hard → unified format, tags to categories
 - **`UnifiedConverter`**: Cross-platform conversion utilities
 - Extensible for new platforms
 
@@ -46,8 +48,16 @@ The backend has been restructured to support both **unified portfolio views** an
 // Codeforces rating to unified difficulty
 CodeforcesConverter.ratingToDifficulty(1400) // → "Medium"
 
+// LeetCode difficulty to unified
+LeetCodeConverter.difficultyToUnified('Hard') // → "Hard"
+
 // Codeforces tags to unified categories  
-CodeforcesConverter.tagsToCategories(['dp', 'graphs']) // → { category: 'DSA', topics: ['dp', 'graphs'] }
+CodeforcesConverter.tagsToCategories(['dp', 'graphs']) 
+// → { category: 'DSA', topics: ['dp', 'graphs'] }
+
+// LeetCode tags to unified categories
+LeetCodeConverter.tagsToCategories([{name: 'Array'}, {name: 'Dynamic Programming'}])
+// → { category: 'DSA', topics: ['array', 'dynamic_programming'] }
 ```
 
 ### 🎯 Controllers
@@ -84,12 +94,25 @@ GET /api/v1/portfolio/{username}/summary
   "data": {
     "user": { "username": "...", "name": "..." },
     "portfolio": {
-      "linkedAccounts": [...],
+      "linkedAccounts": [
+        {
+          "platform": "codeforces",
+          "handle": "tourist",
+          "rating": 3790,
+          "totalSolved": 1500
+        },
+        {
+          "platform": "leetcode",
+          "handle": "leetcode_user",
+          "rating": 2400,
+          "totalSolved": 800
+        }
+      ],
       "overallStats": {
-        "totalSolved": 150,
-        "difficulty": { "easy": 50, "medium": 80, "hard": 20 }
+        "totalSolved": 2300,
+        "difficulty": { "easy": 500, "medium": 1200, "hard": 600 }
       },
-      "codeMeshRating": 1650,
+      "codeMeshRating": 2850,
       "activityData": { "heatmap": {...}, "streaks": {...} },
       "topicDistribution": {...},
       "badges": [...]
@@ -103,13 +126,22 @@ GET /api/v1/portfolio/{username}/summary
 ```http
 # Sync platform data
 POST /api/v1/platform/sync
-Body: { "platform": "codeforces", "handle": "tourist" }
+Body: { 
+  "platform": "codeforces" | "leetcode",
+  "handle": "username" 
+}
 
 # Get Codeforces data (authenticated user)
 GET /api/v1/platform/codeforces
 
+# Get LeetCode data (authenticated user)
+GET /api/v1/platform/leetcode
+
 # Get Codeforces data by username (public)
 GET /api/v1/platform/{username}/codeforces
+
+# Get LeetCode data by username (public)
+GET /api/v1/platform/{username}/leetcode
 
 # Get platform summary
 GET /api/v1/platform/{username}/{platform}/summary
@@ -122,19 +154,106 @@ GET /api/v1/platform/{username}/{platform}/summary
   "data": {
     "platform": "codeforces",
     "handle": "tourist", 
-    "profile": { "rating": 3790, "maxRating": 4009, "rank": "legendary grandmaster" },
+    "profile": { 
+      "rating": 3790, 
+      "maxRating": 4009, 
+      "rank": "legendary grandmaster" 
+    },
     "statistics": {
       "ratingDistribution": {
-        "800-1199": 10,
-        "1200-1399": 25, 
-        "1400-1599": 40,
-        "1600-1899": 35,
-        "1900-2099": 20,
-        "2100-2399": 15,
-        "2400+": 8
+        "800": 5,
+        "900": 8,
+        "1000": 12,
+        "1100": 15,
+        "1200": 25,
+        "1300": 30,
+        "1400": 40,
+        "1500": 35,
+        "1600": 45,
+        "1700": 38,
+        "1800": 32,
+        "1900": 28,
+        "2000": 25,
+        "2100": 20,
+        "2200": 15,
+        "2300": 12,
+        "2400": 10,
+        "2500": 8
       },
-      "topicDistribution": { "dp": 45, "graphs": 38, "math": 32 },
-      "contestStats": { "totalContests": 156, "bestRank": 1 }
+      "topicDistribution": { 
+        "dp": 145, 
+        "graphs": 138, 
+        "math": 132,
+        "greedy": 98,
+        "data structures": 156
+      },
+      "contestStats": { 
+        "totalContests": 256, 
+        "bestRank": 1,
+        "averageRank": 15,
+        "ratingProgress": 2500
+      },
+      "verdictDistribution": {
+        "OK": 1250,
+        "WRONG_ANSWER": 450,
+        "TIME_LIMIT_EXCEEDED": 120
+      },
+      "languageDistribution": {
+        "GNU C++17": 800,
+        "GNU C++20": 450
+      }
+    }
+  }
+}
+```
+
+**LeetCode Response Structure:**
+```json
+{
+  "success": true,
+  "data": {
+    "platform": "leetcode",
+    "handle": "leetcode_user",
+    "profile": {
+      "username": "leetcode_user",
+      "realName": "John Doe",
+      "userAvatar": "https://...",
+      "ranking": 12345,
+      "reputation": 150
+    },
+    "statistics": {
+      "totalSolved": 850,
+      "totalSubmissions": 1200,
+      "acceptanceRate": "70.8",
+      "difficultyDistribution": {
+        "Easy": 300,
+        "Medium": 450,
+        "Hard": 100
+      },
+      "topicDistribution": {
+        "Array": 180,
+        "Dynamic Programming": 120,
+        "Hash Table": 95,
+        "Tree": 85,
+        "Graph": 70
+      },
+      "statusDistribution": {
+        "Accepted": 850,
+        "Wrong Answer": 250,
+        "Time Limit Exceeded": 80,
+        "Runtime Error": 20
+      },
+      "languageDistribution": {
+        "Python3": 450,
+        "Java": 300,
+        "C++": 100
+      },
+      "contestStats": {
+        "attendedContests": 45,
+        "currentRating": 2150,
+        "bestRank": 125,
+        "averageRank": 850
+      }
     }
   }
 }
@@ -144,28 +263,105 @@ GET /api/v1/platform/{username}/{platform}/summary
 
 ### 1. **Data Sync Flow**
 ```
-User Request → PlatformController → CodeforcesServiceV2 → Raw Storage
-                                                              ↓
-                                                     PlatformData
-                                                     PlatformSubmission  
-                                                     PlatformRatingHistory
+User Request → PlatformController → Platform Service (CF/LC) → Raw Storage
+                                                                      ↓
+                                                              PlatformData
+                                                              PlatformSubmission  
+                                                              PlatformRatingHistory
+```
+
+**Codeforces Flow:**
+```
+POST /platform/sync → CodeforcesServiceV2 → CF REST API
+                                                ↓
+                    makeRequest() → user.info, user.status, user.rating
+                                                ↓
+                    storePlatformData() → PlatformData collection
+                    storeSubmissions() → PlatformSubmission collection
+                    storeRatingHistory() → PlatformRatingHistory collection
+```
+
+**LeetCode Flow:**
+```
+POST /platform/sync → LeetCodeServiceV2 → LC GraphQL API
+                                              ↓
+                makeRequest() → getUserProfile, getRecentSubmissions, 
+                                getContestInfo, getSkillStats, getLanguageStats
+                                              ↓
+                storePlatformData() → PlatformData collection
+                storeSubmissions() → PlatformSubmission collection
+                storeRatingHistory() → PlatformRatingHistory collection
 ```
 
 ### 2. **Unified Portfolio Flow**  
 ```
-Portfolio Request → PortfolioController → UnificationService → Platform Converters
-                                                                       ↓
-                                                              Unified Response
+Portfolio Request → PortfolioController → UnificationService
+                                              ↓
+                                    Fetch all platform data
+                                              ↓
+                    processPlatformData() for each platform
+                                              ↓
+                    Apply platform converters (CF/LC/etc.)
+                                              ↓
+                    calculateUnifiedMetrics()
+                                              ↓
+                                    Unified Response
 ```
 
 ### 3. **Platform-Specific Flow**
 ```
-Platform Request → PlatformController → Platform Service → Raw Data + Platform Stats
+Platform Request → PlatformController → Platform Service
+                                              ↓
+                              getPlatformSpecificData()
+                                              ↓
+                    Fetch from PlatformData/Submission/RatingHistory
+                                              ↓
+                    calculatePlatformStats() (native format)
+                                              ↓
+                              Platform-Specific Response
 ```
+
+## Platform Integration Details
+
+### Codeforces Integration
+- **API Type**: REST API
+- **Base URL**: `https://codeforces.com/api`
+- **Rate Limit**: 1 request/second, burst of 5
+- **Authentication**: None required (public API)
+- **Key Endpoints**:
+  - `user.info` - User profile data
+  - `user.status` - All submissions
+  - `user.rating` - Contest rating history
+  - `problemset.problems` - Problem details
+- **Data Format**: Native Codeforces rating (800-3500+)
+- **Unique Features**: 
+  - Problem ratings (800, 900, 1000, etc.)
+  - Verdicts (OK, WRONG_ANSWER, TLE, etc.)
+  - Contest performance tracking
+  - Tag-based problem categorization
+
+### LeetCode Integration
+- **API Type**: GraphQL API
+- **Base URL**: `https://leetcode.com/graphql`
+- **Rate Limit**: 0.5 requests/second (conservative)
+- **Authentication**: None required for public profiles
+- **Key Queries**:
+  - `getUserProfile` - User profile and stats
+  - `getRecentSubmissions` - Submission history (limit 100)
+  - `userContestRankingInfo` - Contest rating and history
+  - `skillStats` - Tag-based skill distribution
+  - `languageStats` - Programming language usage
+- **Data Format**: Difficulty levels (Easy/Medium/Hard)
+- **Unique Features**:
+  - Contest rating system (separate from problem solving)
+  - Topic tags (Array, DP, Graph, etc.)
+  - Premium problem distinction
+  - Submission calendar with daily counts
+  - Advanced/Intermediate/Fundamental skill levels
 
 ## Migration Guide
 
-### From Old API
+### From Old API (Deprecated)
 ```http
 # OLD (Deprecated)
 POST /api/v1/profile/sync  
@@ -177,13 +373,18 @@ GET /api/v1/profile/{username}
 ```http
 # NEW - Data Sync
 POST /api/v1/platform/sync
+Body: { "platform": "codeforces", "handle": "tourist" }
+Body: { "platform": "leetcode", "handle": "leetcode_user" }
 
 # NEW - Unified Portfolio  
 GET /api/v1/portfolio
 GET /api/v1/portfolio/{username}
 
 # NEW - Platform-Specific
-GET /api/v1/platform/{username}/codeforces
+GET /api/v1/platform/codeforces         # Authenticated
+GET /api/v1/platform/leetcode           # Authenticated
+GET /api/v1/platform/{username}/codeforces  # Public
+GET /api/v1/platform/{username}/leetcode    # Public
 ```
 
 ## Benefits
@@ -191,43 +392,184 @@ GET /api/v1/platform/{username}/codeforces
 ### ✅ **Unified Experience**
 - Single API for cross-platform statistics
 - Consistent difficulty mapping (Easy/Medium/Hard)
-- CodeMesh unified rating system
-- Combined activity heatmaps
+- CodeMesh unified rating system (0-4000 scale)
+- Combined activity heatmaps across platforms
+- Aggregated topic distribution
 
 ### ✅ **Platform Flexibility**
 - Preserve platform-specific nuances
-- Codeforces: Rating-wise problem distribution
-- LeetCode: Premium/free problem distinction  
-- Native contest performance metrics
+- **Codeforces**: Native rating-wise problem distribution (800-3500+)
+- **LeetCode**: Easy/Medium/Hard breakdown, premium problems distinction
+- Native contest performance metrics for each platform
+- Platform-specific verdict/status tracking
 
 ### ✅ **Scalability**
-- Easy to add new platforms
+- Easy to add new platforms (follow BasePlatformService pattern)
 - No data loss during conversions
 - Platform-specific optimizations possible
 - Clean separation of concerns
+- Independent rate limiting per platform
 
 ### ✅ **Performance**
-- Raw data stored once
+- Raw data stored once per platform
 - Unified transformations on-demand
 - Platform-specific queries optimized
 - Caching opportunities at multiple levels
+- Batch insertion for submissions (1000 per batch)
+
+## Implemented Platforms
+
+### ✅ Codeforces
+- **Status**: Fully Implemented
+- **Service**: `CodeforcesServiceV2`
+- **Converter**: `CodeforcesConverter`
+- **Features**:
+  - User profile sync
+  - All submissions history
+  - Contest rating history
+  - Problem difficulty mapping (800-3500+)
+  - Tag-based categorization
+  - Platform-specific statistics
+
+### ✅ LeetCode  
+- **Status**: Fully Implemented
+- **Service**: `LeetCodeServiceV2`
+- **Converter**: `LeetCodeConverter`
+- **Features**:
+  - User profile sync (GraphQL)
+  - Recent submissions (last 100)
+  - Contest rating and history
+  - Skill statistics (Advanced/Intermediate/Fundamental)
+  - Language usage tracking
+  - Topic distribution
+  - Difficulty breakdown (Easy/Medium/Hard)
+  - Contest performance metrics
+
+### 🔜 Coming Soon
+- CodeChef (planned)
+- AtCoder (planned)
+- HackerRank (planned)
+- GeeksforGeeks (planned)
+
+## Development Guide
+
+### Adding a New Platform
+
+1. **Create Platform Service**
+```javascript
+// src/services/platform/NewPlatformServiceV2.js
+import BasePlatformService from './BasePlatformService.js';
+
+class NewPlatformService extends BasePlatformService {
+  constructor() {
+    super('newplatform');
+    this.baseURL = 'https://api.newplatform.com';
+  }
+
+  async getUserInfo(handle) { /* implement */ }
+  async getAllSubmissions(handle) { /* implement */ }
+  async getRatingHistory(handle) { /* implement */ }
+  async validateHandle(handle) { /* implement */ }
+  async syncUserData(userId, handle) { /* implement */ }
+  async getPlatformSpecificData(userId) { /* implement */ }
+}
+```
+
+2. **Create Platform Converter**
+```javascript
+// src/utils/platformConverter.js
+export const NewPlatformConverter = {
+  difficultyToUnified(platformDifficulty) { /* map to Easy/Medium/Hard */ },
+  tagsToCategories(tags) { /* map to CP/DSA/Fundamentals */ },
+  // ... other conversion methods
+};
+
+// Register in PlatformConverters
+export const PlatformConverters = {
+  codeforces: CodeforcesConverter,
+  leetcode: LeetCodeConverter,
+  newplatform: NewPlatformConverter
+};
+```
+
+3. **Update Platform Controller**
+```javascript
+// src/controllers/platformController.js
+import NewPlatformServiceV2 from '../services/platform/NewPlatformServiceV2.js';
+
+const newPlatformService = new NewPlatformServiceV2();
+
+// Add in syncPlatformData switch
+case 'newplatform':
+  result = await newPlatformService.syncUserData(userId, handle);
+  break;
+```
+
+4. **Update Models Enum**
+```javascript
+// Add 'newplatform' to enum in:
+// - src/models/PlatformData.js
+// - src/models/PlatformSubmission.js
+// - src/models/PlatformRatingHistory.js
+```
+
+## Testing
+
+### Test Platform Sync
+```bash
+# Codeforces
+curl -X POST http://localhost:3000/api/v1/platform/sync \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"platform":"codeforces","handle":"tourist"}'
+
+# LeetCode
+curl -X POST http://localhost:3000/api/v1/platform/sync \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"platform":"leetcode","handle":"leetcode_username"}'
+```
+
+### Test Unified Portfolio
+```bash
+curl http://localhost:3000/api/v1/portfolio/username
+```
+
+### Test Platform-Specific Data
+```bash
+# Authenticated
+curl http://localhost:3000/api/v1/platform/codeforces \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+curl http://localhost:3000/api/v1/platform/leetcode \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# Public
+curl http://localhost:3000/api/v1/platform/username/codeforces
+curl http://localhost:3000/api/v1/platform/username/leetcode
+```
 
 ## Next Steps
 
-1. **Add LeetCode Support**
-   - Create `LeetCodeService`
-   - Add `LeetCodeConverter` 
-   - Update UnificationService
+1. **Add More Platforms**  
+   - CodeChef (REST API)
+   - AtCoder (REST API)
+   - HackerRank (REST API)
 
-2. **Add More Platforms**  
-   - CodeChef, AtCoder, HackerRank
-   - Follow same pattern
+2. **Optimization**
+   - Add Redis caching layer for platform data
+   - Implement background job queue for data sync
+   - Pre-compute unified metrics periodically
+   - Add rate limit coordination across services
 
-3. **Optimization**
-   - Add caching layer
-   - Background data processing
-   - Pre-computed unified metrics
+3. **Enhanced Features**
+   - Real-time contest tracking
+   - Automated daily sync
+   - Problem recommendation engine
+   - Comparative analytics across platforms
 
 4. **Frontend Integration**
-   - Update frontend to use new APIs
-   - Implement unified and platform-specific views
+   - Update frontend to use new unified portfolio API
+   - Implement platform-specific detail pages
+   - Add platform sync UI
+   - Create unified dashboard view

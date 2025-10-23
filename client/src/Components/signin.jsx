@@ -1,4 +1,4 @@
-import { useId, useState } from "react"
+import { useId, useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 
@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import LogoLight from '/Logof.png';
+import LogoDark from '/Logod.png';
 
 export default function SignIn({ children, isDialogOpen, onOpenChange, stayOnCurrentPage = false }) {
   const id = useId()
@@ -71,6 +73,48 @@ export default function SignIn({ children, isDialogOpen, onOpenChange, stayOnCur
     signInWithGoogle(stayOnCurrentPage);
   }
 
+  // Custom hook to detect theme changes
+  const useTheme = () => {
+    const [isDark, setIsDark] = useState(false);
+
+    useEffect(() => {
+      // Initial theme check
+      const checkTheme = () => {
+        if (typeof window !== "undefined") {
+          const isDarkMode = document.documentElement.classList.contains('dark');
+          setIsDark(isDarkMode);
+        }
+      };
+
+      // Check theme immediately
+      checkTheme();
+
+      // Create a MutationObserver to watch for class changes on the document element
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+            checkTheme();
+          }
+        });
+      });
+
+      // Observe the document element for class changes
+      if (typeof window !== "undefined") {
+        observer.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ['class']
+        });
+      }
+
+      // Cleanup observer on unmount
+      return () => observer.disconnect();
+    }, []);
+
+    return isDark;
+  };
+
+  const isDarkTheme = useTheme();
+
   return (
     <Dialog open={isDialogOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild onClick={handleSignInClick}>
@@ -79,19 +123,14 @@ export default function SignIn({ children, isDialogOpen, onOpenChange, stayOnCur
       <DialogContent className="sm:max-w-sm">
         <div className="flex flex-col items-center gap-2">
           <div
-            className="flex size-11 shrink-0 items-center justify-center rounded-full border"
+            className="flex size-11 shrink-0 items-center justify-center border"
             aria-hidden="true"
           >
-            <svg
-              className="stroke-zinc-800 dark:stroke-zinc-100"
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 32 32"
-              aria-hidden="true"
-            >
-              <circle cx="16" cy="16" r="12" fill="none" strokeWidth="8" />
-            </svg>
+            <img
+              src={isDarkTheme ? LogoDark : LogoLight}
+              alt="CodeMesh"
+              className="h-full w-auto object-contain rounded"
+            />
           </div>
           <DialogHeader>
             <DialogTitle className="sm:text-center">Welcome back</DialogTitle>
@@ -102,11 +141,11 @@ export default function SignIn({ children, isDialogOpen, onOpenChange, stayOnCur
         </div>
 
         <form className="space-y-5" onSubmit={handleSubmit}>
-          {error && (
+          {/* {error && (
             <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
               {error}
             </div>
-          )}
+          )} */}
           
           <div className="space-y-4">
             <div className="*:not-first:mt-2">

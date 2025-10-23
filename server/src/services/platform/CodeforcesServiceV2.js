@@ -298,11 +298,15 @@ class CodeforcesService extends BasePlatformService {
       const acceptedSubmissions = submissions.filter(sub => sub.quickAccess.verdict === 'OK');
       const stats = this.calculateCodeforcesStats(submissions, acceptedSubmissions, ratingHistory);
 
+      // Calculate heatmap from ALL submissions
+      const heatmapData = this.calculateHeatmapFromSubmissions(submissions);
+
       return {
         platform: 'codeforces',
         handle: platformData.handle,
         profile: platformData.rawData.profile,
         statistics: stats,
+        heatmap: heatmapData, // Add heatmap data
         submissions: submissions.slice(0, 50), // Latest 50 submissions
         ratingHistory: ratingHistory,
         lastSynced: platformData.lastSynced
@@ -312,6 +316,23 @@ class CodeforcesService extends BasePlatformService {
       console.error('Error fetching Codeforces-specific data:', error);
       throw error;
     }
+  }
+
+  /**
+   * Calculate heatmap from all submissions
+   * @param {Array} submissions - All submissions
+   * @returns {Object} Heatmap data with date keys
+   */
+  calculateHeatmapFromSubmissions(submissions) {
+    const heatmap = {};
+    
+    submissions.forEach(submission => {
+      const date = new Date(submission.quickAccess.timestamp);
+      const dateKey = date.toISOString().split('T')[0];
+      heatmap[dateKey] = (heatmap[dateKey] || 0) + 1;
+    });
+    
+    return heatmap;
   }
 
   /**
@@ -328,16 +349,8 @@ class CodeforcesService extends BasePlatformService {
       acceptanceRate: allSubmissions.length > 0 ? 
         (acceptedSubmissions.length / allSubmissions.length * 100).toFixed(1) : 0,
       
-      // Codeforces-specific: Rating-based difficulty distribution
-      ratingDistribution: {
-        '800-1199': 0,    // Newbie/Pupil problems
-        '1200-1399': 0,   // Specialist problems  
-        '1400-1599': 0,   // Expert problems
-        '1600-1899': 0,   // Candidate Master problems
-        '1900-2099': 0,   // Master problems
-        '2100-2399': 0,   // International Master problems
-        '2400+': 0        // Grandmaster+ problems
-      },
+      // Codeforces-specific: Native rating distribution (actual Codeforces ratings)
+      ratingMap: {},
 
       // Verdict distribution (Codeforces-specific)
       verdictDistribution: {},
@@ -359,19 +372,13 @@ class CodeforcesService extends BasePlatformService {
       }
     };
 
-    // Calculate rating distribution
+    // Calculate native rating map
     acceptedSubmissions.forEach(submission => {
       const problem = submission.rawSubmissionData.problem;
       const rating = problem.rating;
       
       if (rating) {
-        if (rating < 1200) stats.ratingDistribution['800-1199']++;
-        else if (rating < 1400) stats.ratingDistribution['1200-1399']++;
-        else if (rating < 1600) stats.ratingDistribution['1400-1599']++;
-        else if (rating < 1900) stats.ratingDistribution['1600-1899']++;
-        else if (rating < 2100) stats.ratingDistribution['1900-2099']++;
-        else if (rating < 2400) stats.ratingDistribution['2100-2399']++;
-        else stats.ratingDistribution['2400+']++;
+        stats.ratingMap[rating] = (stats.ratingMap[rating] || 0) + 1;
       }
 
       // Topic distribution using Codeforces tags

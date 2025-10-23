@@ -2,6 +2,7 @@ import express from 'express';
 import { 
   syncPlatformData,
   getMyCodeforcesData,
+  getMyLeetCodeData,
   getCodeforcesDataByUsername,
   getLeetCodeDataByUsername,
   getCodeChefDataByUsername,
@@ -16,6 +17,7 @@ router.post('/platform/sync', authenticateToken, syncPlatformData);
 
 // Authenticated user's platform data
 router.get('/platform/codeforces', authenticateToken, getMyCodeforcesData);
+router.get('/platform/leetcode', authenticateToken, getMyLeetCodeData);
 
 // Public platform-specific endpoints
 router.get('/platform/:username/codeforces', getCodeforcesDataByUsername);
