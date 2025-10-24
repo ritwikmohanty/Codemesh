@@ -161,6 +161,12 @@ class LeetCodeService extends BasePlatformService {
               submissions
             }
           }
+          badges {
+            id
+            displayName
+            icon
+            creationDate
+          }
         }
         matchedUserStats: matchedUser(username: $username) {
           submitStats: submitStatsGlobal {
@@ -414,40 +420,60 @@ class LeetCodeService extends BasePlatformService {
       }
     }
 
-    // Get contest rating if available
+    // Get contest rating and calculate max rating from ATTENDED contests only
     let contestRating = 0;
+    let maxContestRating = 0;
     try {
       const contestInfo = await this.getContestInfo(username);
       contestRating = contestInfo.ranking?.rating || 0;
+      
+      // Calculate max rating from ATTENDED contests only
+      if (contestInfo.history && contestInfo.history.length > 0) {
+        const attendedRatings = contestInfo.history
+          .filter(r => r.attended === true)
+          .map(r => Math.round(r.rating));
+        
+        if (attendedRatings.length > 0) {
+          maxContestRating = Math.max(...attendedRatings);
+        }
+      }
+      
+      // Ensure current >= max
+      maxContestRating = Math.max(maxContestRating, Math.round(contestRating));
     } catch (error) {
       console.warn('Could not fetch contest rating');
     }
+
+    // Extract badges from profile
+    const badges = userProfile.badges || [];
 
     const platformData = {
       user: userId,
       platform: 'leetcode',
       handle: username,
       rawData: {
-        profile: userProfile,
+        profile: userProfile, // userProfile already contains badges
         statistics: {
           skillStats,
           languageStats,
           allQuestionsCount: userProfile.allQuestionsCount,
           submissionHeatmap // Store parsed heatmap data
         },
+        badges: badges, // ALSO store badges at top level for easy access
         metadata: {
           apiVersion: 'graphql',
           syncedAt: new Date()
         }
       },
       quickAccess: {
-        currentRating: contestRating,
-        maxRating: contestRating, // LeetCode doesn't have separate max rating
+        currentRating: Math.round(contestRating),
+        maxRating: maxContestRating,
         rank: userProfile.profile?.ranking || 0,
         totalSolved: totalSolved,
         totalSubmissions: totalSubmissions,
         profileUrl: `https://leetcode.com/${username}`,
-        avatarUrl: userProfile.profile?.userAvatar || ''
+        avatarUrl: userProfile.profile?.userAvatar || '',
+        badgesCount: badges.length // Add badge count for quick access
       },
       lastSynced: new Date(),
       isActive: true
@@ -558,10 +584,14 @@ class LeetCodeService extends BasePlatformService {
       );
       const stats = this.calculateLeetCodeStats(submissions, acceptedSubmissions, ratingHistory, platformData);
 
+      // Get badges from the correct location - try both locations
+      const badges = platformData.rawData.badges || platformData.rawData.profile?.badges || [];
+
       return {
         platform: 'leetcode',
         handle: platformData.handle,
         profile: platformData.rawData.profile,
+        badges: badges, // Include badges array at root level
         statistics: stats,
         submissions: submissions.slice(0, 50),
         ratingHistory: ratingHistory,
@@ -617,6 +647,7 @@ class LeetCodeService extends BasePlatformService {
       contestStats: {
         attendedContests: ratingHistory.length,
         currentRating: platformData.quickAccess.currentRating || 0,
+        maxRating: platformData.quickAccess.maxRating || 0,
         bestRank: ratingHistory.length > 0 ? 
           Math.min(...ratingHistory.map(r => r.quickAccess.rank)) : null,
         averageRank: ratingHistory.length > 0 ? 
@@ -722,7 +753,7 @@ class LeetCodeService extends BasePlatformService {
       `;
       
       const data = await this.makeRequest(query, { username });
-      return data.matchedUser !== null;
+      return data && data.matchedUser !== null;
     } catch (error) {
       return false;
     }

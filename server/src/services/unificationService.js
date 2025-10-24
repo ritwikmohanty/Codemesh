@@ -143,8 +143,35 @@ class UnificationService {
       profileUrl: quickAccess.profileUrl || '',
       avatarUrl: quickAccess.avatarUrl || '',
       lastSynced: platformData.lastSynced,
-      isVerified: true
+      isVerified: true,
+      badgesCount: quickAccess.badgesCount || 0 // Include badge count in linked accounts
     });
+
+    // Add platform badges to unified badges - Check multiple locations
+    let platformBadges = [];
+    
+    if (platform === 'leetcode') {
+      // For LeetCode, badges can be in rawData.badges OR rawData.profile.badges
+      platformBadges = rawData.badges || rawData.profile?.badges || [];
+    } else if (rawData.badges && Array.isArray(rawData.badges)) {
+      // For other platforms, check rawData.badges
+      platformBadges = rawData.badges;
+    }
+
+    // Add badges to unified portfolio
+    if (platformBadges.length > 0) {
+      platformBadges.forEach(badge => {
+        unified.badges.push({
+          platform: platform,
+          id: badge.id,
+          name: badge.displayName || badge.name,
+          description: `Earned on ${platform.charAt(0).toUpperCase() + platform.slice(1)}`,
+          iconUrl: badge.icon,
+          earnedAt: badge.creationDate ? new Date(badge.creationDate) : new Date(),
+          category: 'platform_achievement'
+        });
+      });
+    }
 
     // Process submissions for unified stats
     const acceptedSubmissions = platformSubmissions.filter(sub => 
@@ -572,15 +599,17 @@ class UnificationService {
    * @returns {Array} Array of badges
    */
   calculateUnifiedBadges(unified) {
-    const badges = [];
+    const badges = [...unified.badges]; // Start with platform badges already added
 
     // First solve badge
     if (unified.overallStats.totalSolved >= 1) {
       badges.push({
+        platform: 'codemesh',
         name: 'First Solve',
         description: 'Solved your first problem',
         iconUrl: '/badges/first-solve.png',
-        earnedAt: new Date()
+        earnedAt: new Date(),
+        category: 'milestone'
       });
     }
 
@@ -589,10 +618,12 @@ class UnificationService {
     milestones.forEach(milestone => {
       if (unified.overallStats.totalSolved >= milestone) {
         badges.push({
+          platform: 'codemesh',
           name: `${milestone} Problems`,
           description: `Solved ${milestone} problems across all platforms`,
           iconUrl: `/badges/${milestone}-problems.png`,
-          earnedAt: new Date()
+          earnedAt: new Date(),
+          category: 'milestone'
         });
       }
     });
@@ -600,10 +631,35 @@ class UnificationService {
     // Streak badges
     if (unified.activityData.streaks.longest >= 7) {
       badges.push({
+        platform: 'codemesh',
         name: 'Week Warrior',
         description: 'Maintained a 7-day solving streak',
         iconUrl: '/badges/week-warrior.png',
-        earnedAt: new Date()
+        earnedAt: new Date(),
+        category: 'streak'
+      });
+    }
+
+    // Add more streak milestones
+    if (unified.activityData.streaks.longest >= 30) {
+      badges.push({
+        platform: 'codemesh',
+        name: 'Month Master',
+        description: 'Maintained a 30-day solving streak',
+        iconUrl: '/badges/month-master.png',
+        earnedAt: new Date(),
+        category: 'streak'
+      });
+    }
+
+    if (unified.activityData.streaks.longest >= 100) {
+      badges.push({
+        platform: 'codemesh',
+        name: 'Consistency King',
+        description: 'Maintained a 100-day solving streak',
+        iconUrl: '/badges/consistency-king.png',
+        earnedAt: new Date(),
+        category: 'streak'
       });
     }
 
