@@ -9,11 +9,7 @@ import cookieParser from "cookie-parser";
 
 // Import models to register them with Mongoose
 import './models/User.js';
-import './models/Problem.js';
-import './models/Profile.js';
 import './models/Contest.js';
-import './models/RatingHistory.js';
-import './models/Submission.js';
 import './models/PlatformData.js';
 import './models/PlatformSubmission.js';
 import './models/PlatformRatingHistory.js';
@@ -25,8 +21,6 @@ import passport from "./config/passport.js";
 import authRoutes from './routes/authRoutes.js';
 import contestRoutes from './routes/contestRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
-import profileRoutes from './routes/profileRoutes.js';
-import dashboardRoutes from './routes/dashboardRoutes.js';
 import portfolioRoutes from './routes/portfolioRoutes.js';
 import platformRoutes from './routes/platformRoutes.js';
 
@@ -94,8 +88,6 @@ try {
   app.use('/api/v1', authRoutes);
   app.use('/api/v1', contestRoutes);
   app.use('/api/v1', notificationRoutes);
-  app.use('/api/v1', profileRoutes);
-  app.use('/api/v1', dashboardRoutes);
   app.use('/api/v1', portfolioRoutes);
   app.use('/api/v1', platformRoutes);
 } catch (routeErr) {

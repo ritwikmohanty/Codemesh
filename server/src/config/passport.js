@@ -74,14 +74,12 @@ passport.use(new GoogleStrategy({
 
     // Create associated records
     try {
-      const [Profile, LeaderboardEntry, NotificationSetting] = await Promise.all([
-        import('../models/Profile.js').then(m => m.default).catch(() => null),
+      const [LeaderboardEntry, NotificationSetting] = await Promise.all([
         import('../models/LeaderboardEntry.js').then(m => m.default).catch(() => null),
         import('../models/NotificationSetting.js').then(m => m.default).catch(() => null)
       ]);
 
       const promises = [];
-      if (Profile) promises.push(new Profile({ user: user._id }).save().catch(err => console.warn('Profile creation failed:', err.message)));
       if (LeaderboardEntry) promises.push(new LeaderboardEntry({ user: user._id }).save().catch(err => console.warn('LeaderboardEntry creation failed:', err.message)));
       if (NotificationSetting) promises.push(new NotificationSetting({ user: user._id }).save().catch(err => console.warn('NotificationSetting creation failed:', err.message)));
 

@@ -2,7 +2,6 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import passport from 'passport';
 import User from '../models/User.js';
-import Profile from '../models/Profile.js';
 import LeaderboardEntry from '../models/LeaderboardEntry.js';
 import NotificationSetting from '../models/NotificationSetting.js';
 
@@ -88,7 +87,6 @@ export const signup = async (req, res) => {
 
     // Create associated records
     await Promise.all([
-      new Profile({ user: user._id }).save(),
       new LeaderboardEntry({ user: user._id }).save(),
       new NotificationSetting({ user: user._id }).save()
     ]);
