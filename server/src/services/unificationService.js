@@ -143,7 +143,7 @@ class UnificationService {
       profileUrl: quickAccess.profileUrl || '',
       avatarUrl: quickAccess.avatarUrl || '',
       lastSynced: platformData.lastSynced,
-      isVerified: true,
+      isVerified: false,
       badgesCount: quickAccess.badgesCount || 0 // Include badge count in linked accounts
     });
 
