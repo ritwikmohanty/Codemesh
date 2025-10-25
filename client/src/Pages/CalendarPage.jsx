@@ -90,7 +90,7 @@ const notificationTimes = [
 ];
 
 const CalendarPage = () => {
-  const { user, isAuthenticated } = useAuth(); // Add auth context
+  const { user, isAuthenticated } = useAuth();
   const [contests, setContests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -100,6 +100,7 @@ const CalendarPage = () => {
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [selectedContest, setSelectedContest] = useState(null);
+  const [calendarHeight, setCalendarHeight] = useState(null);
   
   // Notification preferences state
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
@@ -900,10 +901,42 @@ const CalendarPage = () => {
     return `${notificationPreferences.durations.length} durations selected`;
   };
 
+  // Add this useEffect to measure the calendar height
+  useEffect(() => {
+    const updateCalendarHeight = () => {
+      const calendarSection = document.querySelector('.calendar-section');
+      if (calendarSection) {
+        // Get the calendar's actual height
+        const height = calendarSection.offsetHeight;
+        
+        // On mobile (less than 1280px width), don't constrain sidebar height
+        // Let it flow naturally below the calendar
+        const isMobile = window.innerWidth < 1280;
+        
+        if (isMobile) {
+          setCalendarHeight(null);
+        } else {
+          setCalendarHeight(height);
+        }
+      }
+    };
+    
+    // Initial measurement
+    updateCalendarHeight();
+    
+    // Update on window resize
+    window.addEventListener('resize', updateCalendarHeight);
+    
+    // Update when contests load
+    if (!loading && filteredContests.length > 0) {
+      setTimeout(updateCalendarHeight, 100);
+    }
+    
+    return () => window.removeEventListener('resize', updateCalendarHeight);
+  }, [loading, filteredContests]);
+
   return (
     <div>
-    {/* <div className="min-h-screen bg-background"> */}
-      {/* <Navbar /> */}
       <AppSidebar variant="inset">
       
       <div className="container mx-auto max-w-7xl px-4 py-8">
@@ -1369,7 +1402,7 @@ const CalendarPage = () => {
           <div className="grid grid-cols-1 xl:grid-cols-[1fr_350px] gap-6">
             {/* Calendar Section */}
             <div className="min-w-0">
-              <div className="bg-card rounded-lg border-border border shadow-md overflow-hidden">
+              <div className="bg-card rounded-lg border-border border shadow-md overflow-hidden calendar-section">
                 <CalendarProvider>
                   <CalendarDate>
                     <CalendarDatePicker>
@@ -1392,12 +1425,15 @@ const CalendarPage = () => {
 
             {/* Upcoming Contests Sidebar */}
             <div className="min-w-0">
-              <div className="bg-card rounded-lg border-border border shadow-md p-4 h-full max-h-[calc(100vh-70px)] xl:sticky xl:top-4">
-                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <div 
+                className="bg-card rounded-lg border-border border shadow-md p-4 xl:sticky xl:top-4 flex flex-col"
+                style={calendarHeight ? { height: `${calendarHeight}px`, maxHeight: `${calendarHeight}px` } : { maxHeight: 'none' }}
+              >
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 flex-shrink-0">
                   <Clock className="h-4 w-4" />
                   Upcoming Contests
                 </h2>
-                <div className="space-y-3 overflow-y-auto h-full max-h-[calc(100vh-150px)] scrollbar-hide">
+                <div className="space-y-3 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
                   {filteredContests
                     .filter(contest => {
                       const startDate = parseDate(contest.startAt);
