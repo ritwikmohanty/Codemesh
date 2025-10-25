@@ -21,12 +21,173 @@ import {
   RefreshCw,
 } from "lucide-react"
 import { AppSidebar } from "@/components/sidebar/app-sidebar"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { getMyPortfolio } from "@/services/portfolioService"
+import { ProblemDistributionPieChart } from "@/components/ui/problem-distribution-pie-chart"
+import { CategoryDistributionPieChart } from "@/components/ui/category-distribution-pie-chart"
+
+// Skeleton Components
+const SkeletonLine = ({ className = "" }) => (
+  <div className={`bg-muted animate-pulse rounded ${className}`} />
+)
+
+const PortfolioSkeleton = () => (
+  <AppSidebar variant="inset">
+    <div className="min-h-screen bg-background font-sans p-4 md:p-8">
+      <div className="max-w-5xl mx-auto">
+        {/* Header Skeleton */}
+        <div className="mb-8 flex flex-col md:flex-row justify-between items-start gap-4">
+          <div className="flex-1">
+            <SkeletonLine className="h-12 w-48 mb-4" />
+            <SkeletonLine className="h-6 w-96 max-w-full" />
+          </div>
+          <SkeletonLine className="h-12 w-32 flex-shrink-0" />
+        </div>
+
+        {/* User Profile Skeleton */}
+        <div className="bg-card border border-border rounded-lg p-6 md:p-8 mb-8 shadow-sm">
+          <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+            {/* Avatar and Basic Info */}
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center">
+              <SkeletonLine className="w-24 h-24 md:w-32 md:h-32 rounded-full flex-shrink-0" />
+              <div className="flex-1 w-full">
+                <SkeletonLine className="h-8 w-40 mb-3" />
+                <SkeletonLine className="h-6 w-32 mb-4" />
+                <SkeletonLine className="h-4 w-full mb-2" />
+                <SkeletonLine className="h-4 w-5/6 mb-4" />
+                <div className="flex gap-3">
+                  {[1, 2, 3, 4].map(i => <SkeletonLine key={i} className="w-6 h-6 rounded-full" />)}
+                </div>
+              </div>
+            </div>
+
+            {/* Additional Info */}
+            <div className="flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i}>
+                    <SkeletonLine className="h-4 w-24 mb-2" />
+                    <SkeletonLine className="h-5 w-32" />
+                  </div>
+                ))}
+              </div>
+              <div>
+                <SkeletonLine className="h-4 w-32 mb-2" />
+                <div className="flex gap-2">
+                  {[1, 2, 3].map(i => <SkeletonLine key={i} className="h-6 w-20 rounded" />)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Overview Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-card border border-border rounded-lg p-6 shadow-sm">
+              <SkeletonLine className="h-4 w-24 mb-3" />
+              <SkeletonLine className="h-10 w-16 mb-2" />
+              <SkeletonLine className="h-4 w-32" />
+            </div>
+          ))}
+        </div>
+
+        {/* Main Content Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 mb-8">
+          {/* Heatmap Skeleton */}
+          <div className="lg:col-span-2 bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm">
+            <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
+              <SkeletonLine className="h-7 w-32" />
+              <div className="flex gap-3 w-full sm:w-auto">
+                <SkeletonLine className="h-10 w-24 flex-1 sm:flex-none" />
+                <SkeletonLine className="h-10 w-32 flex-1 sm:flex-none" />
+              </div>
+            </div>
+          </div>
+
+          {/* Platform Ratings Skeleton */}
+          <div className="bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm">
+            <SkeletonLine className="h-7 w-32 mb-4" />
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="bg-muted rounded p-3 flex gap-3">
+                  <SkeletonLine className="w-3 h-12 rounded flex-shrink-0" />
+                  <div className="flex-1">
+                    <SkeletonLine className="h-4 w-24 mb-2" />
+                    <SkeletonLine className="h-3 w-32 mb-1" />
+                    <SkeletonLine className="h-3 w-28" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Rating Progression Skeleton */}
+        <div className="bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm mb-8">
+          <SkeletonLine className="h-7 w-48 mb-6" />
+          <SkeletonLine className="h-80 w-full rounded" />
+        </div>
+
+        {/* Distribution Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-8">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm">
+              <SkeletonLine className="h-6 w-32 mb-4" />
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map(j => (
+                  <div key={j} className="flex justify-between">
+                    <SkeletonLine className="h-4 w-20" />
+                    <SkeletonLine className="h-4 w-12" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Badges Skeleton */}
+        <div className="bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm mb-8">
+          <SkeletonLine className="h-7 w-48 mb-6" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-muted/30 rounded-lg p-4 flex flex-col items-center text-center">
+                <SkeletonLine className="w-16 h-16 rounded-full mb-3" />
+                <SkeletonLine className="h-4 w-20 mb-2" />
+                <SkeletonLine className="h-3 w-24" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Submissions and Topics Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 mb-8">
+          {[1, 2].map(i => (
+            <div key={i} className="bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm">
+              <SkeletonLine className="h-6 w-40 mb-4" />
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map(j => (
+                  <div key={j} className="bg-muted/30 rounded p-3">
+                    <SkeletonLine className="h-4 w-32 mb-2" />
+                    <SkeletonLine className="h-3 w-24" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </AppSidebar>
+)
 
 const Portfolio = () => {
   const navigate = useNavigate()
   const [selectedPlatform, setSelectedPlatform] = useState("all")
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
+  const [selectedYear, setSelectedYear] = useState("current") // Changed default to "current"
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [portfolioData, setPortfolioData] = useState(null)
@@ -112,16 +273,9 @@ const Portfolio = () => {
     setRefreshing(false)
   }
 
-  // Show loading state
+  // Show loading state with skeleton
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 size={48} className="animate-spin mx-auto mb-4 text-muted-foreground" />
-          <p className="text-muted-foreground">Loading your portfolio...</p>
-        </div>
-      </div>
-    )
+    return <PortfolioSkeleton />
   }
 
   // Show error state with login option
@@ -237,6 +391,25 @@ const Portfolio = () => {
 
   const topLanguages = allLanguages.slice(0, 4)
 
+  // Helper: Get available years from heatmap data
+  const getAvailableYears = () => {
+    if (!portfolio?.activityData?.heatmap) return [];
+    
+    const dates = Object.keys(portfolio.activityData.heatmap);
+    const years = new Set();
+    
+    dates.forEach(dateStr => {
+      const year = new Date(dateStr).getFullYear();
+      if (!isNaN(year)) {
+        years.add(year);
+      }
+    });
+    
+    return Array.from(years).sort((a, b) => b - a); // Sort descending
+  };
+
+  const availableYears = getAvailableYears();
+
   const heatmapData = generateHeatmapFromBackend(
     portfolio?.activityData?.heatmap || {},
     selectedYear,
@@ -325,25 +498,81 @@ const Portfolio = () => {
     return colors[index] || "hsl(var(--muted))"
   }
 
-  function generateHeatmapFromBackend(heatmap, year, platform, portfolio) {
-    const data = []
-    const startDate = new Date(parseInt(year), 0, 1)
-    const endDate = new Date(parseInt(year), 11, 31)
+  function generateHeatmapFromBackend(heatmap, yearOption, platform, portfolio) {
+    let startDate, endDate;
     
-    let filteredHeatmap = heatmap
-    if (platform !== "all" && portfolio?.platformStats?.[platform]) {
-      filteredHeatmap = heatmap
+    if (yearOption === "current") {
+      // Show last 365 days from current week's Sunday
+      const today = new Date();
+      const currentDayOfWeek = today.getDay(); // 0 (Sunday) to 6 (Saturday)
+      
+      // Calculate the most recent Sunday
+      const lastSunday = new Date(today);
+      lastSunday.setDate(today.getDate() - currentDayOfWeek);
+      lastSunday.setHours(0, 0, 0, 0);
+      
+      // End date is last Sunday
+      endDate = lastSunday;
+      
+      // Start date is 364 days before (365 days total including end date)
+      startDate = new Date(lastSunday);
+      startDate.setDate(lastSunday.getDate() - 364);
+    } else {
+      // Show specific year
+      const year = parseInt(yearOption);
+      startDate = new Date(year, 0, 1);
+      endDate = new Date(year, 11, 31);
     }
     
+    // Filter heatmap by platform
+    let filteredHeatmap = heatmap;
+    if (platform !== "all" && portfolio?.platformStats?.[platform]?.heatmap) {
+      // Use platform-specific heatmap
+      filteredHeatmap = portfolio.platformStats[platform].heatmap;
+    }
+    
+    // Generate data array chronologically
+    const data = [];
     for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      const dateKey = d.toISOString().split('T')[0]
+      const dateKey = d.toISOString().split('T')[0];
       data.push({
         date: dateKey,
-        count: filteredHeatmap[dateKey] || 0
-      })
+        count: filteredHeatmap[dateKey] || 0,
+        dayOfWeek: d.getDay() // 0 (Sunday) to 6 (Saturday)
+      });
     }
     
-    return data
+    // Organize data into weeks (columns)
+    const weeks = [];
+    let currentWeek = [];
+    
+    // Pad the beginning if the first date is not a Sunday
+    const firstDayOfWeek = data[0]?.dayOfWeek || 0;
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      currentWeek.push({ date: null, count: 0, isEmpty: true });
+    }
+    
+    // Fill in the actual data
+    data.forEach(day => {
+      currentWeek.push(day);
+      
+      // If we've completed a week (Saturday), start a new week
+      if (day.dayOfWeek === 6) {
+        weeks.push(currentWeek);
+        currentWeek = [];
+      }
+    });
+    
+    // Add the last incomplete week if it exists
+    if (currentWeek.length > 0) {
+      // Pad the end to complete the week
+      while (currentWeek.length < 7) {
+        currentWeek.push({ date: null, count: 0, isEmpty: true });
+      }
+      weeks.push(currentWeek);
+    }
+    
+    return weeks;
   }
 
   // Components
@@ -405,19 +634,34 @@ const Portfolio = () => {
     )
   }
 
-  const HeatmapCell = ({ count, date }) => {
-    const getIntensity = (count) => {
-      if (count === 0) return "bg-muted"
-      if (count <= 2) return "bg-primary/30"
-      if (count <= 4) return "bg-primary/60"
-      if (count <= 6) return "bg-primary/80"
-      return "bg-primary"
-    }
+  // Helper: convert count to 0..4 bucket (GitHub-style)
+  const toLevel = (count, max = 8) => {
+    if (count <= 0) return 0;
+    if (count <= Math.max(1, Math.ceil(max * 0.25))) return 1;
+    if (count <= Math.max(2, Math.ceil(max * 0.50))) return 2;
+    if (count <= Math.max(3, Math.ceil(max * 0.75))) return 3;
+    return 4;
+  }
 
+  // Calculate max count for the current heatmap data (flatten weeks array)
+  const maxCount = Math.max(1, ...heatmapData.flat().map(d => d.count || 0));
+
+  const HeatmapCell = ({ count, date, index, isEmpty }) => {
+    if (isEmpty) {
+      return <div className="gh-cell gh-l0" style={{ "--i": index, opacity: 0 }} />;
+    }
+    
+    const level = toLevel(count, maxCount);
+    const pulse = count > 0 ? "gh-pulse" : "";
+    
     return (
       <div
-        className={`w-3 h-3 ${getIntensity(count)} rounded-sm m-0.5 cursor-pointer hover:ring-2 hover:ring-primary transition`}
-        title={`${date}: ${count} problems solved`}
+        className={`gh-cell gh-l${level} ${pulse}`}
+        style={{ "--i": index }}
+        role="button"
+        aria-label={`${count} problems solved on ${date}`}
+        title={`${date}: ${count} problem${count !== 1 ? 's' : ''} solved`}
+        tabIndex={0}
       />
     )
   }
@@ -511,13 +755,13 @@ const Portfolio = () => {
     minRating = Math.floor((minRating - padding) / 100) * 100;
     maxRating = Math.ceil((maxRating + padding) / 100) * 100;
 
-    const chartWidth = 800;
-    const chartHeight = 400;
+    const chartWidth = 600;
+    const chartHeight = 300;
     const paddingLeft = 60;
-    const paddingRight = 40;
-    const paddingTop = 40;
-    const paddingBottom = 60;
-    
+    const paddingRight = 40*3/4;
+    const paddingTop = 40*3/4;
+    const paddingBottom = 60*3/4;
+
     const graphWidth = chartWidth - paddingLeft - paddingRight;
     const graphHeight = chartHeight - paddingTop - paddingBottom;
 
@@ -721,7 +965,7 @@ const Portfolio = () => {
     <div>
       <AppSidebar variant="inset">
         <div className="min-h-screen bg-background font-sans p-4 md:p-8 text-foreground">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             {/* Header */}
             <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
@@ -744,127 +988,156 @@ const Portfolio = () => {
               </button>
             </div>
 
-            {/* User Profile Section */}
+            {/* User Profile Section (improved layout) */}
             <div className="bg-card border border-border rounded-lg p-6 md:p-8 mb-8 shadow-sm">
-              <div className="flex flex-col md:flex-row gap-6 md:gap-8">
-                {/* Avatar and Basic Info */}
-                <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center">
-                  {/* Avatar */}
-                  {userData.profilePic && userData.profilePic !== "/diverse-group-profile.png" ? (
-                    <img
-                      src={userData.profilePic}
-                      alt="Profile"
-                      className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-primary object-cover flex-shrink-0"
-                      onError={(e) => {
-                        e.target.style.display = 'none'
-                        e.target.nextSibling.style.display = 'flex'
-                      }}
-                    />
-                  ) : null}
-                  
-                  <div
-                    className={`w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-primary bg-primary flex items-center justify-center text-4xl md:text-5xl font-bold text-primary-foreground flex-shrink-0 ${
-                      userData.profilePic && userData.profilePic !== "/diverse-group-profile.png" ? "hidden" : "flex"
-                    }`}
-                  >
-                    {getDefaultAvatar(userData.fullName)}
-                  </div>
+              <div className="flex flex-col lg:flex-row gap-8">
+                {/* Left: Avatar + identity + socials */}
+                <div className="flex-1 lg:max-w-[40%]">
+                  <div className="flex flex-col gap-5">
+                    {/* Avatar and Name Row */}
+                    <div className="flex items-start gap-5">
+                      <Avatar className="h-32 w-32 md:h-36 md:w-36 rounded-xl ring-2 ring-primary/20 flex-shrink-0">
+                        {userData.profilePic && userData.profilePic !== "/diverse-group-profile.png" ? (
+                          <AvatarImage src={userData.profilePic} alt={userData.username} className="object-cover" />
+                        ) : null}
+                        <AvatarFallback className="text-3xl md:text-4xl font-semibold rounded-xl">
+                          {getDefaultAvatar(userData.fullName)}
+                        </AvatarFallback>
+                      </Avatar>
 
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h2 className="text-2xl md:text-3xl font-bold">{userData.username}</h2>
-                      {userData.isVerified && <CheckCircle size={24} className="text-primary flex-shrink-0" />}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="text-2xl md:text-3xl font-bold truncate">{userData.username}</h2>
+                          {userData.isVerified ? (
+                            <Badge className="gap-1" variant="secondary">
+                              <CheckCircle size={14} /> Verified
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">Not verified</Badge>
+                          )}
+                        </div>
+
+                        <p className="text-sm text-muted-foreground mt-1 truncate">{userData.fullName}</p>
+                      </div>
                     </div>
-                    <p className="text-lg mb-2">{userData.fullName}</p>
-                    <p className="text-muted-foreground mb-4 max-w-2xl leading-relaxed line-clamp-3">
-                      {userData.bio}
+
+                    {/* Bio */}
+                    <p className="text-muted-foreground leading-relaxed">
+                      {userData.bio === "No bio available" ? (
+                        <span className="italic">No bio provided.</span>
+                      ) : (
+                        userData.bio
+                      )}
                     </p>
 
+                    <Separator />
+
                     {/* Social Links */}
-                    <div className="flex gap-3 items-center flex-wrap">
+                    <div className="flex flex-wrap items-center gap-2">
                       {userData.socials?.github && (
-                        <a href={userData.socials.github} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition">
-                          <Github size={20} className="text-muted-foreground hover:text-primary transition" />
-                        </a>
+                        <Button asChild variant="ghost" size="icon" title="GitHub">
+                          <a href={userData.socials.github} target="_blank" rel="noopener noreferrer">
+                            <Github />
+                          </a>
+                        </Button>
                       )}
                       {userData.socials?.linkedin && (
-                        <a href={userData.socials.linkedin} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition">
-                          <Linkedin size={20} className="text-muted-foreground hover:text-primary transition" />
-                        </a>
+                        <Button asChild variant="ghost" size="icon" title="LinkedIn">
+                          <a href={userData.socials.linkedin} target="_blank" rel="noopener noreferrer">
+                            <Linkedin />
+                          </a>
+                        </Button>
                       )}
                       {userData.socials?.twitter && (
-                        <a href={userData.socials.twitter} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition">
-                          <Twitter size={20} className="text-muted-foreground hover:text-primary transition" />
-                        </a>
+                        <Button asChild variant="ghost" size="icon" title="Twitter">
+                          <a href={userData.socials.twitter} target="_blank" rel="noopener noreferrer">
+                            <Twitter />
+                          </a>
+                        </Button>
                       )}
                       {userData.socials?.website && (
-                        <a href={userData.socials.website} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition">
-                          <Globe size={20} className="text-muted-foreground hover:text-primary transition" />
-                        </a>
+                        <Button asChild variant="ghost" size="icon" title="Website">
+                          <a href={userData.socials.website} target="_blank" rel="noopener noreferrer">
+                            <Globe />
+                          </a>
+                        </Button>
                       )}
-                      <button
-                        onClick={() => navigator.clipboard.writeText(window.location.href)}
-                        className="hover:text-primary transition"
-                      >
-                        <Share2 size={20} className="text-primary cursor-pointer" />
-                      </button>
+                      <Button variant="secondary" size="sm" onClick={() => navigator.clipboard.writeText(window.location.href)}>
+                        <Share2 className="mr-1" /> Share profile
+                      </Button>
                     </div>
                   </div>
                 </div>
 
-                {/* Additional Info */}
+                <Separator orientation="vertical" className="hidden lg:block" />
+
+                {/* Right: Key details + platform attachment state */}
                 <div className="flex-1 min-w-0">
+                  {/* Key facts grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <GraduationCap size={16} className="text-muted-foreground flex-shrink-0" />
-                        <span className="text-sm text-muted-foreground">College</span>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <GraduationCap size={16} /> College
                       </div>
-                      <p className="font-medium truncate">{userData.college}</p>
+                      <p className={`font-medium truncate ${userData.college === 'Not specified' ? 'text-muted-foreground italic' : ''}`}>
+                        {userData.college}
+                      </p>
                     </div>
 
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <MapPin size={16} className="text-muted-foreground flex-shrink-0" />
-                        <span className="text-sm text-muted-foreground">Location</span>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <MapPin size={16} /> Location
                       </div>
-                      <p className="font-medium truncate">{userData.location}</p>
+                      <p className={`font-medium truncate ${userData.location === 'Not specified' ? 'text-muted-foreground italic' : ''}`}>
+                        {userData.location}
+                      </p>
                     </div>
 
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Eye size={16} className="text-muted-foreground flex-shrink-0" />
-                        <span className="text-sm text-muted-foreground">Profile Views</span>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <Users size={16} /> Nationality
                       </div>
-                      <p className="font-medium">{userData.profileViews.toLocaleString()}</p>
+                      <p className={`font-medium truncate ${userData.nationality === 'Not specified' ? 'text-muted-foreground italic' : ''}`}>
+                        {userData.nationality}
+                      </p>
                     </div>
 
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Activity size={16} className="text-muted-foreground flex-shrink-0" />
-                        <span className="text-sm text-muted-foreground">Last Refresh</span>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <Activity size={16} /> Last refresh
                       </div>
                       <p className="font-medium truncate">{userData.lastRefresh}</p>
                     </div>
                   </div>
 
-                  {/* Verified Platforms */}
+                  <Separator className="my-6" />
+
+                  {/* Counters */}
+                  <div className="flex flex-wrap items-center gap-3 mb-4">
+                    <Badge variant="outline" className="gap-1"><Eye size={14} /> {userData.profileViews.toLocaleString()} views</Badge>
+                    <Badge variant="outline" className="gap-1"><Users size={14} /> {userData.friends} friends</Badge>
+                  </div>
+
+                  {/* Platforms attachment status */}
                   <div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Verified Platforms ({userData.verifiedPlatforms.length})
-                    </p>
-                    <div className="flex gap-2 flex-wrap">
-                      {userData.verifiedPlatforms.length > 0 ? userData.verifiedPlatforms.map((platform) => (
-                        <span
-                          key={platform}
-                          className="bg-primary/10 text-primary px-3 py-1 rounded text-xs font-medium"
-                        >
-                          {platform}
-                        </span>
-                      )) : (
-                        <span className="text-sm text-muted-foreground">
-                          No platforms connected yet
-                        </span>
+                    <p className="text-sm text-muted-foreground mb-2">Platforms</p>
+                    <div className="flex flex-wrap gap-2">
+                      {(() => {
+                        const supported = ["leetcode", "codeforces", "codechef", "atcoder"]
+                        const linked = (portfolio?.linkedAccounts || []).map(a => a.platform)
+                        return supported.map((p) => {
+                          const isLinked = linked.includes(p)
+                          const isVerified = !!portfolio?.linkedAccounts?.find(a => a.platform === p && a.isVerified)
+                          const label = p.charAt(0).toUpperCase() + p.slice(1)
+                          return (
+                            <Badge key={p} variant={isLinked ? (isVerified ? "default" : "secondary") : "outline"} className="capitalize">
+                              {label} {isLinked ? (isVerified ? "• Verified" : "• Connected") : "• Not linked"}
+                            </Badge>
+                          )
+                        })
+                      })()}
+                      {portfolio?.linkedAccounts && portfolio.linkedAccounts.length === 0 && (
+                        <span className="text-sm text-muted-foreground">No platforms connected yet</span>
                       )}
                     </div>
                   </div>
@@ -902,10 +1175,9 @@ const Portfolio = () => {
               />
             </div>
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 mb-8">
-              {/* Heatmap */}
-              <div className="lg:col-span-2 bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm">
+            {/* Heatmap - Full Width */}
+            <div className="mb-8">
+              <div className="bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                   <h3 className="text-xl md:text-2xl font-semibold">Activity Heatmap</h3>
                   <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -914,7 +1186,8 @@ const Portfolio = () => {
                       onChange={(e) => setSelectedYear(e.target.value)}
                       className="bg-background border border-border rounded-md px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     >
-                      {[2024, 2023, 2022].map(year => (
+                      <option value="current">Current (Last 365 Days)</option>
+                      {availableYears.map(year => (
                         <option key={year} value={year}>{year}</option>
                       ))}
                     </select>
@@ -933,112 +1206,125 @@ const Portfolio = () => {
                   </div>
                 </div>
 
-                {/* Responsive Heatmap Grid */}
+                {/* GitHub-style Heatmap Grid - Week columns */}
                 <div className="overflow-x-auto mb-6 -mx-2 px-2">
-                  <div className="inline-grid gap-1" style={{ gridTemplateColumns: "repeat(53, minmax(12px, 1fr))" }}>
-                    {heatmapData.map((day, index) => (
-                      <HeatmapCell key={index} count={day.count} date={day.date} />
-                    ))}
+                  <div className="flex gap-1">
+                    {/* Day labels on the left */}
+                    <div className="flex flex-col justify-between pr-2 pt-5 text-[10px] text-muted-foreground">
+                      <span>Sun</span>
+
+                      <span>Tue</span>
+       
+                      <span>Thu</span>
+  
+                      <span>Sat</span>
+                    </div>
+
+                    <div className="flex-1">
+                      {/* Month labels at the top */}
+                      <div className="flex mb-1 text-xs text-muted-foreground h-4">
+                        {heatmapData.map((week, weekIndex) => {
+                          const firstDate = week.find(day => !day.isEmpty)?.date;
+                          if (!firstDate) return <div key={weekIndex} className="flex-1" />;
+                          
+                          const date = new Date(firstDate);
+                          const monthName = date.toLocaleString('default', { month: 'short' });
+                          
+                          const isFirstWeekOfMonth = weekIndex === 0 || 
+                            (week[0] && week[0].date && new Date(week[0].date).getDate() <= 7);
+                          
+                          return (
+                            <div key={weekIndex} className="flex-1 text-left">
+                              {isFirstWeekOfMonth ? monthName : ''}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Heatmap grid */}
+                      <div className="flex gap-1">
+                        {heatmapData.map((week, weekIndex) => (
+                          <div key={weekIndex} className="flex flex-col gap-1">
+                            {week.map((day, dayIndex) => (
+                              <HeatmapCell 
+                                key={`${weekIndex}-${dayIndex}`}
+                                count={day.count} 
+                                date={day.date} 
+                                index={weekIndex * 7 + dayIndex}
+                                isEmpty={day.isEmpty}
+                              />
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-sm">
                   <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
                     <span className="text-muted-foreground">
-                      {overallStats.activeDays} active days
+                      {heatmapData.flat().filter(d => !d.isEmpty && d.count > 0).length} active days
                     </span>
                     <span className="text-muted-foreground">
-                      Current streak: {overallStats.streakCurrent} days
+                      Total submissions: {heatmapData.flat().reduce((sum, d) => sum + (d.count || 0), 0)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Less</span>
-                    <div className="flex gap-1">
-                      {[0, 1, 2, 3, 4].map((level) => (
-                        <div
-                          key={level}
-                          className="w-3 h-3 rounded"
-                          style={{
-                            backgroundColor: level === 0 ? "hsl(var(--muted))" : `hsl(var(--primary) / ${0.2 + level * 0.2})`,
-                          }}
-                        />
-                      ))}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>Less</span>
+                    <div className="gh-legend">
+                      <span className="gh-dot gh-l0" />
+                      <span className="gh-dot gh-l1" />
+                      <span className="gh-dot gh-l2" />
+                      <span className="gh-dot gh-l3" />
+                      <span className="gh-dot gh-l4" />
                     </div>
-                    <span className="text-xs text-muted-foreground">More</span>
+                    <span>More</span>
                   </div>
-                </div>
-              </div>
-
-              {/* Platform Ratings */}
-              <div className="bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm">
-                <h3 className="text-xl md:text-2xl font-semibold mb-4">Platform Ratings</h3>
-                <div className="flex flex-col gap-3 max-h-full overflow-y-auto scrollbar-hide">
-                  {Object.keys(platformStats).length > 0 ? Object.entries(platformStats).map(([platform, data]) => (
-                    <PlatformCard key={platform} platform={platform} data={data} />
-                  )) : (
-                    <p className="text-muted-foreground text-center py-8">
-                      No platforms connected yet
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
 
-            {/* Rating Progression Chart */}
+            {/* Rating Progression Chart with Platform Ratings */}
             {ratingChartData.datasets.length > 0 && (
-              <div className="bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm mb-8">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                  <h3 className="text-xl md:text-2xl font-semibold">
-                    Rating Progression
-                  </h3>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <TrendingUp size={16} />
-                    <span>All-time rating history across platforms</span>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 mb-8">
+                {/* Rating Progression - 2/3 width */}
+                <div className="lg:col-span-2 bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <h3 className="text-xl md:text-2xl font-semibold">
+                      Rating Progression
+                    </h3>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <TrendingUp size={16} />
+                      <span>All-time rating history across platforms</span>
+                    </div>
+                  </div>
+                  <RatingChart datasets={ratingChartData.datasets} />
+                </div>
+
+                {/* Platform Ratings - 1/3 width */}
+                <div className="bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm">
+                  <h3 className="text-xl md:text-2xl font-semibold mb-4">Platform Ratings</h3>
+                  <div className="flex flex-col gap-3 max-h-full overflow-y-auto scrollbar-hide">
+                    {Object.keys(platformStats).length > 0 ? Object.entries(platformStats).map(([platform, data]) => (
+                      <PlatformCard key={platform} platform={platform} data={data} />
+                    )) : (
+                      <p className="text-muted-foreground text-center py-8">
+                        No platforms connected yet
+                      </p>
+                    )}
                   </div>
                 </div>
-                <RatingChart datasets={ratingChartData.datasets} />
               </div>
             )}
 
             {/* Problem Distribution, Categories, Languages */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 mb-8">
-              {/* Problem Distribution */}
-              <div className="bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm">
-                <h3 className="text-lg md:text-xl font-semibold mb-4">Problem Distribution</h3>
-                <div className="space-y-3">
-                  {/*
-                    { label: 'Easy', value: problemDistribution.easy, color: 'bg-chart-1' },
-                    { label: 'Medium', value: problemDistribution.medium, color: 'bg-chart-2' },
-                    { label: 'Hard', value: problemDistribution.hard, color: 'bg-chart-3' },
-                    { label: 'Expert', value: problemDistribution.expert, color: 'bg-chart-5' }
-                  */}
-                  {Object.entries(problemDistribution).map(([label, value]) => (
-                    <div key={label} className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded ${getChartColor(label)}`} />
-                        <span>{label.charAt(0).toUpperCase() + label.slice(1)}</span>
-                      </div>
-                      <span className="font-semibold">{value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* Problem Distribution - Pie Chart */}
+              <ProblemDistributionPieChart distribution={problemDistribution} />
 
-              {/* Category Distribution */}
-              <div className="bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm">
-                <h3 className="text-lg md:text-xl font-semibold mb-4">Categories</h3>
-                <div className="space-y-3">
-                  {Object.entries(categoryDistribution).map(([label, value]) => (
-                    <div key={label} className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded ${getCategoryColor(label)}`} />
-                        <span>{label.charAt(0).toUpperCase() + label.slice(1)}</span>
-                      </div>
-                      <span className="font-semibold">{value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* Category Distribution - Pie Chart */}
+              <CategoryDistributionPieChart distribution={categoryDistribution} />
 
               {/* Languages Used */}
               <div className="bg-card border border-border rounded-lg p-4 md:p-6 shadow-sm">

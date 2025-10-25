@@ -216,7 +216,19 @@ class UnificationService {
       platform === 'leetcode' ? rawData.profile : null
     );
 
-    // Update activity data - USE ALL SUBMISSIONS for heatmap
+    // Add platform-specific heatmap
+    const platformHeatmap = {};
+    if (platform === 'leetcode' && rawData.statistics?.submissionHeatmap) {
+      Object.assign(platformHeatmap, rawData.statistics.submissionHeatmap);
+    } else {
+      platformSubmissions.forEach(sub => {
+        const dateKey = new Date(sub.quickAccess.timestamp).toISOString().split('T')[0];
+        platformHeatmap[dateKey] = (platformHeatmap[dateKey] || 0) + 1;
+      });
+    }
+    unified.platformStats[platform].heatmap = platformHeatmap;
+
+    // Update activity data - USE ALL SUBMISSIONS for combined heatmap
     if (platform === 'leetcode' && rawData.statistics?.submissionHeatmap) {
       // Use pre-parsed submission calendar from LeetCode
       this.updateActivityDataFromHeatmap(unified.activityData, rawData.statistics.submissionHeatmap);
