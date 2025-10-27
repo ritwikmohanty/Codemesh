@@ -502,21 +502,16 @@ const Portfolio = () => {
     let startDate, endDate;
     
     if (yearOption === "current") {
-      // Show last 365 days from current week's Sunday
+      // Show last 365 days ending TODAY (not last Sunday)
       const today = new Date();
-      const currentDayOfWeek = today.getDay(); // 0 (Sunday) to 6 (Saturday)
+      today.setHours(0, 0, 0, 0);
       
-      // Calculate the most recent Sunday
-      const lastSunday = new Date(today);
-      lastSunday.setDate(today.getDate() - currentDayOfWeek);
-      lastSunday.setHours(0, 0, 0, 0);
-      
-      // End date is last Sunday
-      endDate = lastSunday;
+      // End date is today
+      endDate = today;
       
       // Start date is 364 days before (365 days total including end date)
-      startDate = new Date(lastSunday);
-      startDate.setDate(lastSunday.getDate() - 364);
+      startDate = new Date(today);
+      startDate.setDate(today.getDate() - 364);
     } else {
       // Show specific year
       const year = parseInt(yearOption);
@@ -648,16 +643,14 @@ const Portfolio = () => {
 
   const HeatmapCell = ({ count, date, index, isEmpty }) => {
     if (isEmpty) {
-      return <div className="gh-cell gh-l0" style={{ "--i": index, opacity: 0 }} />;
+      return <div className="gh-cell gh-l0" style={{ opacity: 0 }} />;
     }
     
     const level = toLevel(count, maxCount);
-    const pulse = count > 0 ? "gh-pulse" : "";
     
     return (
       <div
-        className={`gh-cell gh-l${level} ${pulse}`}
-        style={{ "--i": index }}
+        className={`gh-cell gh-l${level}`}
         role="button"
         aria-label={`${count} problems solved on ${date}`}
         title={`${date}: ${count} problem${count !== 1 ? 's' : ''} solved`}
@@ -969,8 +962,8 @@ const Portfolio = () => {
             {/* Header */}
             <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  Dashboard
+                <h1 className="text-4xl md:text-5xl font-bold mb-2 text-primary">
+                  Portfolio
                 </h1>
                 <p className="text-lg text-muted-foreground">
                   Welcome back, {userData.fullName}! Here's your coding journey overview.
@@ -988,162 +981,205 @@ const Portfolio = () => {
               </button>
             </div>
 
-            {/* User Profile Section (improved layout) */}
-            <div className="bg-card border border-border rounded-lg p-6 md:p-8 mb-8 shadow-sm">
-              <div className="flex flex-col lg:flex-row gap-8">
-                {/* Left: Avatar + identity + socials */}
-                <div className="flex-1 lg:max-w-[40%]">
-                  <div className="flex flex-col gap-5">
-                    {/* Avatar and Name Row */}
-                    <div className="flex items-start gap-5">
-                      <Avatar className="h-32 w-32 md:h-36 md:w-36 rounded-xl ring-2 ring-primary/20 flex-shrink-0">
-                        {userData.profilePic && userData.profilePic !== "/diverse-group-profile.png" ? (
-                          <AvatarImage src={userData.profilePic} alt={userData.username} className="object-cover" />
-                        ) : null}
-                        <AvatarFallback className="text-3xl md:text-4xl font-semibold rounded-xl">
-                          {getDefaultAvatar(userData.fullName)}
-                        </AvatarFallback>
-                      </Avatar>
+            
+            {/* User Profile Section (updated) */}
+<div className="bg-card border border-border rounded-lg p-6 md:p-8 mb-8 shadow-sm">
+  <div className="flex flex-col lg:flex-row gap-8">
+    {/* Left: Avatar + identity + socials */}
+    <div className="flex-1 lg:max-w-[40%]">
+      <div className="flex flex-col gap-5">
+        {/* Avatar and Name Row */}
+        <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+          <Avatar className="h-28 w-28 sm:h-32 sm:w-32 md:h-36 md:w-36 rounded-xl ring-2 ring-primary/20 flex-shrink-0 shadow-sm">
+            {userData.profilePic && userData.profilePic !== "/diverse-group-profile.png" ? (
+              <AvatarImage
+                src={userData.profilePic}
+                alt={userData.username}
+                className="object-cover"
+              />
+            ) : null}
+            <AvatarFallback className="text-2xl sm:text-3xl md:text-4xl font-bold rounded-xl bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]">
+              {getDefaultAvatar(userData.fullName || userData.username)}
+            </AvatarFallback>
+          </Avatar>
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h2 className="text-2xl md:text-3xl font-bold truncate">{userData.username}</h2>
-                          {userData.isVerified ? (
-                            <Badge className="gap-1" variant="secondary">
-                              <CheckCircle size={14} /> Verified
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline">Not verified</Badge>
-                          )}
-                        </div>
-
-                        <p className="text-sm text-muted-foreground mt-1 truncate">{userData.fullName}</p>
-                      </div>
-                    </div>
-
-                    {/* Bio */}
-                    <p className="text-muted-foreground leading-relaxed">
-                      {userData.bio === "No bio available" ? (
-                        <span className="italic">No bio provided.</span>
-                      ) : (
-                        userData.bio
-                      )}
-                    </p>
-
-                    <Separator />
-
-                    {/* Social Links */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      {userData.socials?.github && (
-                        <Button asChild variant="ghost" size="icon" title="GitHub">
-                          <a href={userData.socials.github} target="_blank" rel="noopener noreferrer">
-                            <Github />
-                          </a>
-                        </Button>
-                      )}
-                      {userData.socials?.linkedin && (
-                        <Button asChild variant="ghost" size="icon" title="LinkedIn">
-                          <a href={userData.socials.linkedin} target="_blank" rel="noopener noreferrer">
-                            <Linkedin />
-                          </a>
-                        </Button>
-                      )}
-                      {userData.socials?.twitter && (
-                        <Button asChild variant="ghost" size="icon" title="Twitter">
-                          <a href={userData.socials.twitter} target="_blank" rel="noopener noreferrer">
-                            <Twitter />
-                          </a>
-                        </Button>
-                      )}
-                      {userData.socials?.website && (
-                        <Button asChild variant="ghost" size="icon" title="Website">
-                          <a href={userData.socials.website} target="_blank" rel="noopener noreferrer">
-                            <Globe />
-                          </a>
-                        </Button>
-                      )}
-                      <Button variant="secondary" size="sm" onClick={() => navigator.clipboard.writeText(window.location.href)}>
-                        <Share2 className="mr-1" /> Share profile
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <Separator orientation="vertical" className="hidden lg:block" />
-
-                {/* Right: Key details + platform attachment state */}
-                <div className="flex-1 min-w-0">
-                  {/* Key facts grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                    <div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                        <GraduationCap size={16} /> College
-                      </div>
-                      <p className={`font-medium truncate ${userData.college === 'Not specified' ? 'text-muted-foreground italic' : ''}`}>
-                        {userData.college}
-                      </p>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                        <MapPin size={16} /> Location
-                      </div>
-                      <p className={`font-medium truncate ${userData.location === 'Not specified' ? 'text-muted-foreground italic' : ''}`}>
-                        {userData.location}
-                      </p>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                        <Users size={16} /> Nationality
-                      </div>
-                      <p className={`font-medium truncate ${userData.nationality === 'Not specified' ? 'text-muted-foreground italic' : ''}`}>
-                        {userData.nationality}
-                      </p>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                        <Activity size={16} /> Last refresh
-                      </div>
-                      <p className="font-medium truncate">{userData.lastRefresh}</p>
-                    </div>
-                  </div>
-
-                  <Separator className="my-6" />
-
-                  {/* Counters */}
-                  <div className="flex flex-wrap items-center gap-3 mb-4">
-                    <Badge variant="outline" className="gap-1"><Eye size={14} /> {userData.profileViews.toLocaleString()} views</Badge>
-                    <Badge variant="outline" className="gap-1"><Users size={14} /> {userData.friends} friends</Badge>
-                  </div>
-
-                  {/* Platforms attachment status */}
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">Platforms</p>
-                    <div className="flex flex-wrap gap-2">
-                      {(() => {
-                        const supported = ["leetcode", "codeforces", "codechef", "atcoder"]
-                        const linked = (portfolio?.linkedAccounts || []).map(a => a.platform)
-                        return supported.map((p) => {
-                          const isLinked = linked.includes(p)
-                          const isVerified = !!portfolio?.linkedAccounts?.find(a => a.platform === p && a.isVerified)
-                          const label = p.charAt(0).toUpperCase() + p.slice(1)
-                          return (
-                            <Badge key={p} variant={isLinked ? (isVerified ? "default" : "secondary") : "outline"} className="capitalize">
-                              {label} {isLinked ? (isVerified ? "• Verified" : "• Connected") : "• Not linked"}
-                            </Badge>
-                          )
-                        })
-                      })()}
-                      {portfolio?.linkedAccounts && portfolio.linkedAccounts.length === 0 && (
-                        <span className="text-sm text-muted-foreground">No platforms connected yet</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div className="flex-1 min-w-0">
+            {/* Verification Badge */}
+            <div className="mb-2">
+              {userData.isVerified ? (
+                <Badge className="gap-1" variant="secondary" title="Verified">
+                  <CheckCircle size={13} /> Verified
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs" title="Not verified">
+                  Unverified
+                </Badge>
+              )}
             </div>
+
+            {/* Full Name */}
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-foreground mb-1">
+              {userData.fullName || userData.username}
+            </h2>
+
+            {/* Username */}
+            <p className="text-sm sm:text-base text-muted-foreground font-medium mb-3 truncate">
+              @{userData.username}
+            </p>
+          </div>
+        </div>
+
+        {/* Bio */}
+        <p className="text-sm md:text-base text-muted-foreground leading-relaxed line-clamp-3">
+          {userData.bio === "No bio available" ? (
+            <span className="italic">No bio provided.</span>
+          ) : (
+            userData.bio
+          )}
+        </p>
+
+        <Separator />
+
+        {/* Social Links */}
+        <div className="flex flex-wrap items-center gap-2">
+          {userData.socials?.github && (
+            <Button asChild variant="ghost" size="icon" title="GitHub" aria-label="GitHub">
+              <a href={userData.socials.github} target="_blank" rel="noopener noreferrer">
+                <Github className="h-5 w-5" />
+              </a>
+            </Button>
+          )}
+          {userData.socials?.linkedin && (
+            <Button asChild variant="ghost" size="icon" title="LinkedIn" aria-label="LinkedIn">
+              <a href={userData.socials.linkedin} target="_blank" rel="noopener noreferrer">
+                <Linkedin className="h-5 w-5" />
+              </a>
+            </Button>
+          )}
+          {userData.socials?.twitter && (
+            <Button asChild variant="ghost" size="icon" title="Twitter" aria-label="Twitter">
+              <a href={userData.socials.twitter} target="_blank" rel="noopener noreferrer">
+                <Twitter className="h-5 w-5" />
+              </a>
+            </Button>
+          )}
+          {userData.socials?.website && (
+            <Button asChild variant="ghost" size="icon" title="Website" aria-label="Website">
+              <a href={userData.socials.website} target="_blank" rel="noopener noreferrer">
+                <Globe className="h-5 w-5" />
+              </a>
+            </Button>
+          )}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => navigator.clipboard.writeText(window.location.href)}
+            className="ml-1"
+            title="Copy profile link"
+          >
+            <Share2 className="mr-1 h-4 w-4" /> Share profile
+          </Button>
+        </div>
+      </div>
+    </div>
+
+    <Separator orientation="vertical" className="hidden lg:block" />
+
+    {/* Right: Key details + platform attachment state */}
+    <div className="flex-1 min-w-0">
+      {/* Key facts grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div>
+          <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mb-1">
+            <GraduationCap size={16} /> College
+          </div>
+          <p
+            className={`font-medium truncate ${
+              userData.college === "Not specified" ? "text-muted-foreground italic" : ""
+            }`}
+          >
+            {userData.college}
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mb-1">
+            <MapPin size={16} /> Location
+          </div>
+          <p
+            className={`font-medium truncate ${
+              userData.location === "Not specified" ? "text-muted-foreground italic" : ""
+            }`}
+          >
+            {userData.location}
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mb-1">
+            <Users size={16} /> Nationality
+          </div>
+          <p
+            className={`font-medium truncate ${
+              userData.nationality === "Not specified" ? "text-muted-foreground italic" : ""
+            }`}
+          >
+            {userData.nationality}
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mb-1">
+            <Activity size={16} /> Last refresh
+          </div>
+          <p className="font-medium truncate">{userData.lastRefresh}</p>
+        </div>
+      </div>
+
+      <Separator className="my-6" />
+
+      {/* Counters */}
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <Badge variant="outline" className="gap-1">
+          <Eye size={14} /> {userData.profileViews.toLocaleString()} views
+        </Badge>
+        <Badge variant="outline" className="gap-1">
+          <Users size={14} /> {userData.friends} friends
+        </Badge>
+      </div>
+
+      {/* Platforms attachment status */}
+      <div>
+        <p className="text-sm text-muted-foreground mb-2">Platforms</p>
+        <div className="flex flex-wrap gap-2">
+          {(() => {
+            const supported = ["leetcode", "codeforces", "codechef", "atcoder"];
+            const linked = (portfolio?.linkedAccounts || []).map((a) => a.platform);
+            return supported.map((p) => {
+              const isLinked = linked.includes(p);
+              const isVerified =
+                !!portfolio?.linkedAccounts?.find((a) => a.platform === p && a.isVerified);
+              const label = p.charAt(0).toUpperCase() + p.slice(1);
+              return (
+                <Badge
+                  key={p}
+                  variant={isLinked ? (isVerified ? "default" : "secondary") : "outline"}
+                  className="capitalize"
+                >
+                  {label} {isLinked ? (isVerified ? "• Verified" : "• Connected") : "• Not linked"}
+                </Badge>
+              );
+            });
+          })()}
+          {portfolio?.linkedAccounts && portfolio.linkedAccounts.length === 0 && (
+            <span className="text-sm text-muted-foreground">No platforms connected yet</span>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
@@ -1222,24 +1258,26 @@ const Portfolio = () => {
 
                     <div className="flex-1">
                       {/* Month labels at the top */}
-                      <div className="flex mb-1 text-xs text-muted-foreground h-4">
-                        {heatmapData.map((week, weekIndex) => {
-                          const firstDate = week.find(day => !day.isEmpty)?.date;
-                          if (!firstDate) return <div key={weekIndex} className="flex-1" />;
-                          
-                          const date = new Date(firstDate);
-                          const monthName = date.toLocaleString('default', { month: 'short' });
-                          
-                          const isFirstWeekOfMonth = weekIndex === 0 || 
-                            (week[0] && week[0].date && new Date(week[0].date).getDate() <= 7);
-                          
-                          return (
-                            <div key={weekIndex} className="flex-1 text-left">
-                              {isFirstWeekOfMonth ? monthName : ''}
-                            </div>
-                          );
-                        })}
-                      </div>
+<div className="flex mb-1 text-xs text-muted-foreground h-4">
+  {heatmapData.map((week, weekIndex) => {
+    const firstDate = week.find(day => !day.isEmpty)?.date;
+    if (!firstDate) return <div key={weekIndex} className="flex-1" />;
+    
+    const date = new Date(firstDate);
+    const monthName = date.toLocaleString('default', { month: 'short' });
+    
+    // Only show month labels for weeks after the first (to avoid labeling partial oldest months)
+    // and only if the week starts early in the month (day <= 7)
+    const isFirstWeekOfMonth = weekIndex > 0 && 
+      (week[0] && week[0].date && new Date(week[0].date).getDate() <= 7);
+    
+    return (
+      <div key={weekIndex} className="flex-1 text-left">
+        {isFirstWeekOfMonth ? monthName : ''}
+      </div>
+    );
+  })}
+</div>
 
                       {/* Heatmap grid */}
                       <div className="flex gap-1">

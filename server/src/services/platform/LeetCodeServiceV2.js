@@ -587,12 +587,16 @@ class LeetCodeService extends BasePlatformService {
       // Get badges from the correct location - try both locations
       const badges = platformData.rawData.badges || platformData.rawData.profile?.badges || [];
 
+      // Calculate heatmap from ALL submissions
+      const heatmapData = this.calculateHeatmapFromSubmissions(submissions);
+
       return {
         platform: 'leetcode',
         handle: platformData.handle,
         profile: platformData.rawData.profile,
-        badges: badges, // Include badges array at root level
+        badges: badges,
         statistics: stats,
+        heatmap: heatmapData, // Add heatmap data
         submissions: submissions.slice(0, 50),
         ratingHistory: ratingHistory,
         lastSynced: platformData.lastSynced
@@ -602,6 +606,23 @@ class LeetCodeService extends BasePlatformService {
       console.error('Error fetching LeetCode-specific data:', error);
       throw error;
     }
+  }
+
+  /**
+   * Calculate heatmap from all submissions
+   * @param {Array} submissions - All submissions
+   * @returns {Object} Heatmap data with date keys
+   */
+  calculateHeatmapFromSubmissions(submissions) {
+    const heatmap = {};
+    
+    submissions.forEach(submission => {
+      const date = new Date(submission.quickAccess.timestamp);
+      const dateKey = date.toISOString().split('T')[0];
+      heatmap[dateKey] = (heatmap[dateKey] || 0) + 1;
+    });
+    
+    return heatmap;
   }
 
   /**
