@@ -19,4 +19,6 @@ CodeMesh brings all your competitive programming activity into one place. Track 
 
 ---
 Team: TY IT B1  
-Shashank Sathish, Ritwik Mohanty, Rishi Desai
+Ritwik Mohanty, Shashank Sathish, Rishi Desai
+
+
