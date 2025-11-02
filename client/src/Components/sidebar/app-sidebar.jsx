@@ -88,7 +88,7 @@ const data = {
       icon: IconListDetails,
     },
     {
-      title: "Protfolio",
+      title: "Portfolio",
       url: "/portfolio",
       icon: IconChartBar,
     },

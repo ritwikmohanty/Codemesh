@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "545035aa-4dd5-4cd4-bb43-ae9c31262158",
 		"name": "CodeMesh API Collection v2.0",
-		"description": "Complete API documentation for CodeMesh server v2.0. Includes authentication, contests, notifications, unified portfolios, and platform-specific views. Base URL: {{base_url}} (e.g., http://localhost:3000). Set auth_token for protected routes.",
+		"description": "Complete API documentation for CodeMesh server v2.0. Includes authentication, contests, notifications, unified portfolios, platform-specific views, and leaderboard. Base URL: {{base_url}} (e.g., http://localhost:3000). Set auth_token for protected routes.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "44224372"
 	},
@@ -32,7 +32,6 @@
 							"path": [
 								"api",
 								"v1",
-								"auth",
 								"signup"
 							]
 						},
@@ -62,7 +61,6 @@
 							"path": [
 								"api",
 								"v1",
-								"auth",
 								"signin"
 							]
 						},
@@ -88,7 +86,6 @@
 							"path": [
 								"api",
 								"v1",
-								"auth",
 								"profile"
 							]
 						},
@@ -107,14 +104,13 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/api/v1/auth/refresh",
+							"raw": "{{base_url}}/api/v1/refresh",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
 								"v1",
-								"auth",
 								"refresh"
 							]
 						},
@@ -177,14 +173,13 @@
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/v1/auth/logout",
+							"raw": "{{base_url}}/api/v1/logout",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
 								"v1",
-								"auth",
 								"logout"
 							]
 						},
@@ -705,10 +700,208 @@
 			"description": "Platform-specific endpoints that preserve native platform formats and statistics."
 		},
 		{
-			"name": "Dashboards",
+			"name": "Leaderboard",
 			"item": [
 				{
-					"name": "Get My Dashboard",
+					"name": "Get Global Leaderboard",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/leaderboard?page=1&limit=50&tier=Expert&search=username",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"leaderboard"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								},
+								{
+									"key": "tier",
+									"value": "Expert"
+								},
+								{
+									"key": "search",
+									"value": "username"
+								}
+							]
+						},
+						"description": "Get global leaderboard with pagination and filters. Optional: page, limit (max 100), tier, search. Returns ranked users with CodeMesh ratings."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Top Users",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/leaderboard/top/10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"leaderboard",
+								"top",
+								"10"
+							]
+						},
+						"description": "Get top N users from leaderboard. Replace 10 with desired count (max 100)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Leaderboard Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/leaderboard/stats",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"leaderboard",
+								"stats"
+							]
+						},
+						"description": "Get leaderboard statistics including total users, tier distribution, average rating, and top rating."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Leaderboard by Tier",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/leaderboard/tier/Expert?page=1&limit=50",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"leaderboard",
+								"tier",
+								"Expert"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Get leaderboard filtered by tier. Valid tiers: Newbie, Pupil, Specialist, Expert, Candidate Master, Master, Grandmaster, Legendary Grandmaster."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Leaderboard Entry by Username",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/leaderboard/user/{{username}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"leaderboard",
+								"user",
+								"{{username}}"
+							]
+						},
+						"description": "Get leaderboard entry by username (public). Returns user's rank, rating, and breakdown."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Leaderboard Context",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/leaderboard/context/100?range=5",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"leaderboard",
+								"context",
+								"100"
+							],
+							"query": [
+								{
+									"key": "range",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Get users around a specific rank (context view). Replace 100 with target rank. Optional: range (default 5)."
+					},
+					"response": []
+				},
+				{
+					"name": "Search Leaderboard",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/leaderboard/search?q=john&page=1&limit=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"leaderboard",
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "john"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Search users in leaderboard by username or name. Required: q (search query)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Leaderboard Entry",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -718,151 +911,80 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/api/v1/dashboard/me",
+							"raw": "{{base_url}}/api/v1/leaderboard/me",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
 								"v1",
-								"dashboard",
+								"leaderboard",
 								"me"
 							]
 						},
-						"description": "Get authenticated user's dashboard. Requires Bearer token."
+						"description": "Get authenticated user's leaderboard entry. Requires Bearer token."
 					},
 					"response": []
 				},
 				{
-					"name": "Get Dashboard by Username",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/v1/dashboard/{{username}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"dashboard",
-								"{{username}}"
-							]
-						},
-						"description": "Get dashboard by username."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Dashboard Summary",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/v1/dashboard/{{username}}/summary",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"dashboard",
-								"{{username}}",
-								"summary"
-							]
-						},
-						"description": "Get dashboard summary by username."
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Profiles (DEPRECATED)",
-			"item": [
-				{
-					"name": "Sync Platform Data (DEPRECATED)",
+					"name": "Recalculate My Rating",
 					"request": {
 						"method": "POST",
 						"header": [
 							{
 								"key": "Authorization",
 								"value": "Bearer {{auth_token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"platform\": \"{{platform}}\",\n  \"handle\": \"{{handle}}\"\n}"
-						},
 						"url": {
-							"raw": "{{base_url}}/api/v1/profile/sync",
+							"raw": "{{base_url}}/api/v1/leaderboard/recalculate",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
 								"v1",
-								"profile",
-								"sync"
+								"leaderboard",
+								"recalculate"
 							]
 						},
-						"description": "DEPRECATED: Use /api/v1/platform/sync instead. This endpoint returns deprecation notice."
+						"description": "Recalculate rating for authenticated user. Requires Bearer token. Useful for immediate updates after platform sync."
 					},
 					"response": []
 				},
 				{
-					"name": "Get Profile (DEPRECATED)",
+					"name": "Recalculate All Ratings (Admin)",
 					"request": {
-						"method": "GET",
+						"method": "POST",
 						"header": [
 							{
 								"key": "Authorization",
 								"value": "Bearer {{auth_token}}"
 							}
 						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"batchSize\": 50,\n  \"onlyActive\": true,\n  \"minSubmissions\": 1\n}"
+						},
 						"url": {
-							"raw": "{{base_url}}/api/v1/profile",
+							"raw": "{{base_url}}/api/v1/leaderboard/admin/recalculate-all",
 							"host": [
 								"{{base_url}}"
 							],
 							"path": [
 								"api",
 								"v1",
-								"profile"
+								"leaderboard",
+								"admin",
+								"recalculate-all"
 							]
 						},
-						"description": "DEPRECATED: Use /api/v1/portfolio for unified view or /api/v1/platform/{platform} for platform-specific data."
-					},
-					"response": []
-				},
-				{
-					"name": "Get Public Profile (DEPRECATED)",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/api/v1/profile/{{username}}",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"v1",
-								"profile",
-								"{{username}}"
-							]
-						},
-						"description": "DEPRECATED: Use /api/v1/portfolio/{username} for unified portfolio view."
+						"description": "Admin endpoint: Recalculate ratings for all users (async). Requires admin Bearer token. Optional body: batchSize, onlyActive, minSubmissions."
 					},
 					"response": []
 				}
 			],
-			"description": "DEPRECATED: Old profile endpoints. Use Unified Portfolio or Platform Specific endpoints instead."
+			"description": "Leaderboard endpoints for CodeMesh Master Rating system. Includes global rankings, tier filtering, search, and rating recalculation."
 		}
 	],
 	"variable": [

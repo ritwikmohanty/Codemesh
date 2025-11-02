@@ -23,10 +23,12 @@ import contestRoutes from './routes/contestRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import portfolioRoutes from './routes/portfolioRoutes.js';
 import platformRoutes from './routes/platformRoutes.js';
+import leaderboardRoutes from './routes/leaderboardRoutes.js';
 
 // Import schedulers
 import { startContestScheduler } from './schedulers/contestScheduler.js';
 import { startNotificationScheduler } from './schedulers/notificationScheduler.js';
+import { startLeaderboardScheduler } from './schedulers/leaderboardScheduler.js';
 
 const app = express();
 
@@ -90,6 +92,7 @@ try {
   app.use('/api/v1', notificationRoutes);
   app.use('/api/v1', portfolioRoutes);
   app.use('/api/v1', platformRoutes);
+  app.use('/api/v1', leaderboardRoutes);
 } catch (routeErr) {
   console.error('Route registration error:', routeErr);
   throw routeErr;
@@ -118,6 +121,7 @@ mongoose.connect(process.env.MONGO_URI)
       // Start schedulers after server is running
       startContestScheduler();
       startNotificationScheduler();
+      startLeaderboardScheduler();
     });
   })
   .catch(err => console.error("MongoDB connection error:", err));

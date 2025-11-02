@@ -1,9 +1,11 @@
 import CodeforcesServiceV2 from '../services/platform/CodeforcesServiceV2.js';
 import LeetCodeServiceV2 from '../services/platform/LeetCodeServiceV2.js';
 import User from '../models/User.js';
+import LeaderboardService from '../services/leaderboardService.js';
 
 const codeforcesService = new CodeforcesServiceV2();
 const leetcodeService = new LeetCodeServiceV2();
+const leaderboardService = new LeaderboardService();
 
 /**
  * Platform Controller - Handles platform-specific detailed views
@@ -45,7 +47,16 @@ export async function syncPlatformData(req, res) {
         result = await leetcodeService.syncUserData(userId, handle);
         break;
       default:
-        throw new Error(`Platform ${platform} service not implemented`);
+        return res.status(400).json({ success: false, message: 'Unsupported platform' });
+    }
+
+    // Trigger leaderboard rating recalculation after successful sync
+    try {
+      await leaderboardService.calculateAndUpdateUserRating(userId);
+      console.log(`Leaderboard rating updated for user ${userId} after ${platform} sync`);
+    } catch (leaderboardError) {
+      // Don't fail the sync if leaderboard update fails
+      console.error('Failed to update leaderboard rating:', leaderboardError);
     }
 
     res.json({
