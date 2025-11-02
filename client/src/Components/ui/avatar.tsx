@@ -30,19 +30,46 @@ const AvatarImage = React.forwardRef<
 ))
 AvatarImage.displayName = AvatarPrimitive.Image.displayName
 
+interface AvatarFallbackProps extends React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback> {
+  username?: string
+}
+
 const AvatarFallback = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Fallback>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Fallback
-    ref={ref}
-    className={cn(
-      "flex h-full w-full items-center justify-center rounded-full bg-muted",
-      className
-    )}
-    {...props}
-  />
-))
+  AvatarFallbackProps
+>(({ className, username, children, ...props }, ref) => {
+  const svgRef = React.useRef<SVGSVGElement>(null)
+
+  React.useEffect(() => {
+    // Update jdenticon when username changes
+    if (username && svgRef.current && (window as any).jdenticon) {
+      (window as any).jdenticon.update(svgRef.current, username)
+    }
+  }, [username])
+
+  return (
+    <AvatarPrimitive.Fallback
+      ref={ref}
+      className={cn(
+        "flex h-full w-full items-center justify-center rounded-full bg-muted",
+        className
+      )}
+      {...props}
+    >
+      {username ? (
+        <svg
+          ref={svgRef}
+          data-jdenticon-value={username}
+          className="h-full w-full"
+          style={{ borderRadius: 'inherit' }}
+        />
+      ) : (
+        // Fallback to children or a default icon if no username
+        children || <span className="text-lg font-semibold">?</span>
+      )}
+    </AvatarPrimitive.Fallback>
+  )
+})
 AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName
 
 export { Avatar, AvatarImage, AvatarFallback }

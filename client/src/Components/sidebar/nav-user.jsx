@@ -37,10 +37,6 @@ export function NavUser() {
   const { isAuthenticated, user, logout } = useAuth()
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false)
 
-  const getDefaultAvatar = (name) => {
-    return name ? name.charAt(0).toUpperCase() : 'U'
-  }
-
   const handleLogout = () => {
     logout()
   }
@@ -80,9 +76,7 @@ export function NavUser() {
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatarUrl} alt={user.name} />
-                <AvatarFallback className="rounded-lg">
-                  {getDefaultAvatar(user.name)}
-                </AvatarFallback>
+                <AvatarFallback username={user.username} className="rounded-lg" />
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
@@ -103,9 +97,7 @@ export function NavUser() {
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatarUrl} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">
-                    {getDefaultAvatar(user.name)}
-                  </AvatarFallback>
+                  <AvatarFallback username={user.username} className="rounded-lg" />
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>

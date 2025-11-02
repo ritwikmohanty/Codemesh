@@ -101,10 +101,6 @@ const Navbar = () => {
         }
     `;
 
-    const getDefaultAvatar = (name) => {
-        return name ? name.charAt(0).toUpperCase() : 'U';
-    };
-
     const handleLogout = () => {
         logout();
         setIsMenuOpen(false);
@@ -145,9 +141,7 @@ const Navbar = () => {
                                                 src={user.avatarUrl} 
                                                 alt={user.name}
                                             />
-                                            <AvatarFallback>
-                                                {getDefaultAvatar(user.name)}
-                                            </AvatarFallback>
+                                            <AvatarFallback username={user.username} />
                                         </Avatar>
                                     </button>
                                 </DropdownMenuTrigger>
@@ -218,9 +212,7 @@ const Navbar = () => {
                                             src={user.avatarUrl} 
                                             alt={user.name}
                                         />
-                                        <AvatarFallback>
-                                            {getDefaultAvatar(user.name)}
-                                        </AvatarFallback>
+                                        <AvatarFallback username={user.username} />
                                     </Avatar>
                                     <div className="flex flex-col">
                                         <p className="text-sm font-medium">{user.name}</p>

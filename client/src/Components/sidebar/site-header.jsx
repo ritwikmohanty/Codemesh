@@ -21,10 +21,6 @@ export function SiteHeader() {
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false)
   const { isAuthenticated, user, logout } = useAuth()
 
-  const getDefaultAvatar = (name) => {
-    return name ? name.charAt(0).toUpperCase() : 'U'
-  }
-
   const handleLogout = () => {
     logout()
   }
@@ -45,9 +41,7 @@ export function SiteHeader() {
                         src={user.avatarUrl} 
                         alt={user.name}
                       />
-                      <AvatarFallback>
-                        {getDefaultAvatar(user.name)}
-                      </AvatarFallback>
+                      <AvatarFallback username={user.username} />
                     </Avatar>
                   </button>
                 </DropdownMenuTrigger>

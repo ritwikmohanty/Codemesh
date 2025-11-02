@@ -52,7 +52,12 @@ const PortfolioSkeleton = () => (
           <div className="flex flex-col md:flex-row gap-6 md:gap-8">
             {/* Avatar and Basic Info */}
             <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center">
-              <SkeletonLine className="w-24 h-24 md:w-32 md:h-32 rounded-full flex-shrink-0" />
+              <svg 
+                width="128" 
+                height="128" 
+                data-jdenticon-value="loading"
+                className="rounded-full flex-shrink-0 opacity-30"
+              />
               <div className="flex-1 w-full">
                 <SkeletonLine className="h-8 w-40 mb-3" />
                 <SkeletonLine className="h-6 w-32 mb-4" />
@@ -440,10 +445,6 @@ const Portfolio = () => {
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
     .slice(0, 10)
     
-
-  function getDefaultAvatar(name) {
-    return name ? name.charAt(0).toUpperCase() : 'U'
-  }
 
   function getStatusColor(status) {
     const statusColors = {
@@ -991,16 +992,12 @@ const Portfolio = () => {
         {/* Avatar and Name Row */}
         <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
           <Avatar className="h-28 w-28 sm:h-32 sm:w-32 md:h-36 md:w-36 rounded-xl ring-2 ring-primary/20 flex-shrink-0 shadow-sm">
-            {userData.profilePic && userData.profilePic !== "/diverse-group-profile.png" ? (
-              <AvatarImage
-                src={userData.profilePic}
-                alt={userData.username}
-                className="object-cover"
-              />
-            ) : null}
-            <AvatarFallback className="text-2xl sm:text-3xl md:text-4xl font-bold rounded-xl bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]">
-              {getDefaultAvatar(userData.fullName || userData.username)}
-            </AvatarFallback>
+            <AvatarImage
+              src={userData.profilePic && userData.profilePic !== "/diverse-group-profile.png" ? userData.profilePic : undefined}
+              alt={userData.username}
+              className="object-cover"
+            />
+            <AvatarFallback username={userData.username} className="rounded-xl" />
           </Avatar>
 
           <div className="flex-1 min-w-0">
@@ -1402,10 +1399,9 @@ const Portfolio = () => {
                     Badges & Achievements
                   </h3>
                   <span className="text-sm text-muted-foreground">
-                    {userBadges.length} badge{userBadges.length !== 1 ? 's' : ''} earned
+                    {userBadges.length} total
                   </span>
                 </div>
-                
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {userBadges.map((badge, index) => (
                     <div
