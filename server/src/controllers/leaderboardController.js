@@ -342,3 +342,75 @@ export async function searchLeaderboard(req, res) {
     });
   }
 }
+
+/**
+ * Get platform-specific leaderboard
+ * GET /api/v1/leaderboard/platform/:platform
+ */
+export async function getPlatformLeaderboard(req, res) {
+  try {
+    const { platform } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+    
+    // Validate platform
+    const validPlatforms = ['codeforces', 'leetcode'];
+    if (!validPlatforms.includes(platform.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid platform. Must be one of: ${validPlatforms.join(', ')}`
+      });
+    }
+    
+    const result = await leaderboardService.getPlatformLeaderboard({
+      platform: platform.toLowerCase(),
+      page: parseInt(page),
+      limit: Math.min(parseInt(limit), 100)
+    });
+    
+    res.json(result);
+    
+  } catch (error) {
+    console.error(`Error fetching ${req.params.platform} leaderboard:`, error);
+    res.status(500).json({
+      success: false,
+      message: `Failed to fetch ${req.params.platform} leaderboard`,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
+/**
+ * Get top N users for a specific platform
+ * GET /api/v1/leaderboard/platform/:platform/top/:count
+ */
+export async function getTopUsersByPlatform(req, res) {
+  try {
+    const { platform, count } = req.params;
+    
+    // Validate platform
+    const validPlatforms = ['codeforces', 'leetcode'];
+    if (!validPlatforms.includes(platform.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid platform. Must be one of: ${validPlatforms.join(', ')}`
+      });
+    }
+    
+    const topCount = Math.min(parseInt(count) || 10, 100);
+    
+    const result = await leaderboardService.getTopUsersByPlatform({
+      platform: platform.toLowerCase(),
+      count: topCount
+    });
+    
+    res.json(result);
+    
+  } catch (error) {
+    console.error(`Error fetching top ${req.params.platform} users:`, error);
+    res.status(500).json({
+      success: false,
+      message: `Failed to fetch top ${req.params.platform} users`,
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}

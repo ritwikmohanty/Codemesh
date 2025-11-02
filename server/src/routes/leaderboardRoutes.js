@@ -9,7 +9,9 @@ import {
   recalculateMyRating,
   recalculateAllRatings,
   getLeaderboardContext,
-  searchLeaderboard
+  searchLeaderboard,
+  getPlatformLeaderboard,
+  getTopUsersByPlatform
 } from '../controllers/leaderboardController.js';
 import { authenticateToken } from '../middlewares/auth.js';
 
@@ -78,6 +80,23 @@ router.get('/leaderboard/context/:rank', getLeaderboardContext);
  * @query   q (string), page (number), limit (number)
  */
 router.get('/leaderboard/search', searchLeaderboard);
+
+/**
+ * @route   GET /api/v1/leaderboard/platform/:platform
+ * @desc    Get leaderboard for a specific platform
+ * @access  Public
+ * @params  platform (string) - 'codeforces' or 'leetcode'
+ * @query   page (number), limit (number)
+ */
+router.get('/leaderboard/platform/:platform', getPlatformLeaderboard);
+
+/**
+ * @route   GET /api/v1/leaderboard/platform/:platform/top/:count
+ * @desc    Get top N users for a specific platform
+ * @access  Public
+ * @params  platform (string) - 'codeforces' or 'leetcode', count (number)
+ */
+router.get('/leaderboard/platform/:platform/top/:count', getTopUsersByPlatform);
 
 // Protected routes (require authentication)
 

@@ -961,27 +961,24 @@ const Portfolio = () => {
         <div className="min-h-screen bg-background font-sans p-4 md:p-8 text-foreground">
           <div className="max-w-5xl mx-auto">
             {/* Header */}
-            <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="mb-8">
               <div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-2 text-primary">
-                  Portfolio
-                </h1>
-                <p className="text-lg text-muted-foreground">
+                <h1 className="text-3xl font-bold mb-2">Portfolio</h1>
+                <p className="text-muted-foreground">
                   Welcome back, {userData.fullName}! Here's your coding journey overview.
                 </p>
               </div>
-              
-              {/* Refresh Button */}
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-3 rounded-md font-medium hover:opacity-90 transition disabled:opacity-60 flex-shrink-0"
-              >
-                <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
-                {refreshing ? "Refreshing..." : "Refresh Data"}
-              </button>
             </div>
 
+            {/* Refresh Button */}
+            {/* <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-3 rounded-md font-medium hover:opacity-90 transition disabled:opacity-60 flex-shrink-0 mb-8"
+            >
+              <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+              {refreshing ? "Refreshing..." : "Refresh Data"}
+            </button> */}
             
             {/* User Profile Section (updated) */}
 <div className="bg-card border border-border rounded-lg p-6 md:p-8 mb-8 shadow-sm">

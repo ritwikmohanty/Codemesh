@@ -15,6 +15,10 @@ import {
   IconSearch,
   IconSettings,
   IconUsers,
+  IconTrophy,
+  IconCalendarEvent,
+  IconHome,
+  IconFileStarFilled
 } from "@tabler/icons-react"
 import { NavMain } from "@/components/sidebar/nav-main"
 import { NavSecondary } from "@/components/sidebar/nav-secondary"
@@ -80,22 +84,22 @@ const data = {
     {
       title: "Home",
       url: "/",
-      icon: IconDashboard,
+      icon: IconHome,
     },
     {
       title: "Calendar",
       url: "/calendar",
-      icon: IconListDetails,
+      icon: IconCalendarEvent,
     },
     {
       title: "Portfolio",
       url: "/portfolio",
-      icon: IconChartBar,
+      icon: IconFileStarFilled,
     },
     {
       title: "Leaderboard",
-      url: "#",
-      icon: IconFolder,
+      url: "/leaderboard",
+      icon: IconTrophy,
     },
     {
       title: "Team",

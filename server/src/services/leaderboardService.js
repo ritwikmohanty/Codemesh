@@ -415,6 +415,154 @@ class LeaderboardService {
       throw error;
     }
   }
+  
+  /**
+   * Get platform-specific leaderboard
+   * @param {Object} options - Query options with platform
+   * @returns {Promise<Object>} Platform leaderboard data
+   */
+  async getPlatformLeaderboard(options = {}) {
+    try {
+      const { platform, page = 1, limit = 50 } = options;
+      const skip = (page - 1) * limit;
+      
+      // Build aggregation pipeline to extract platform rating
+      const pipeline = [
+        // Only include entries that have this platform's rating
+        {
+          $match: {
+            'ratingComponents.platformRatings': {
+              $elemMatch: { platform: platform }
+            }
+          }
+        },
+        // Add a field with the platform's rating for sorting
+        {
+          $addFields: {
+            platformRating: {
+              $let: {
+                vars: {
+                  platformData: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: '$ratingComponents.platformRatings',
+                          as: 'pr',
+                          cond: { $eq: ['$$pr.platform', platform] }
+                        }
+                      },
+                      0
+                    ]
+                  }
+                },
+                in: '$$platformData.rating'
+              }
+            }
+          }
+        },
+        // Sort by platform rating
+        { $sort: { platformRating: -1 } },
+        // Add rank
+        {
+          $setWindowFields: {
+            sortBy: { platformRating: -1 },
+            output: {
+              platformRank: { $rank: {} }
+            }
+          }
+        },
+        // Populate user data
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'user',
+            foreignField: '_id',
+            as: 'userData'
+          }
+        },
+        { $unwind: '$userData' },
+        // Project final shape
+        {
+          $project: {
+            _id: 1,
+            user: {
+              _id: '$userData._id',
+              username: '$userData.username',
+              name: '$userData.name',
+              avatarUrl: '$userData.avatarUrl'
+            },
+            platformRating: 1,
+            platformRank: 1,
+            tier: 1,
+            ratingComponents: 1,
+            lastRatingUpdate: 1
+          }
+        }
+      ];
+      
+      // Get paginated results
+      const paginatedPipeline = [
+        ...pipeline,
+        { $skip: skip },
+        { $limit: limit }
+      ];
+      
+      const [entries, totalCountResult] = await Promise.all([
+        LeaderboardEntry.aggregate(paginatedPipeline),
+        LeaderboardEntry.aggregate([
+          ...pipeline.slice(0, 2), // Just match and addFields
+          { $count: 'total' }
+        ])
+      ]);
+      
+      const total = totalCountResult[0]?.total || 0;
+      const totalPages = Math.ceil(total / limit);
+      
+      return {
+        success: true,
+        data: entries,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalEntries: total,
+          entriesPerPage: limit,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1
+        }
+      };
+      
+    } catch (error) {
+      console.error(`Error fetching ${options.platform} leaderboard:`, error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get top N users for a specific platform
+   * @param {Object} options - Options with platform and count
+   * @returns {Promise<Object>} Top users for platform
+   */
+  async getTopUsersByPlatform(options = {}) {
+    try {
+      const { platform, count = 10 } = options;
+      
+      const result = await this.getPlatformLeaderboard({
+        platform,
+        page: 1,
+        limit: count
+      });
+      
+      return {
+        success: true,
+        data: result.data,
+        platform
+      };
+      
+    } catch (error) {
+      console.error(`Error fetching top ${options.platform} users:`, error);
+      throw error;
+    }
+  }
 }
 
 export default LeaderboardService;

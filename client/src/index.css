@@ -83,6 +83,16 @@ body {
   --gh-3: #30a14e; /* dark */
   --gh-4: #216e39; /* darkest */
   --gh-ring: 145 63% 35%; /* ring in HSL for Tailwind ring utilities */
+  
+  /* Leaderboard tier colors */
+  --tier-newbie: 156 100% 50%;
+  --tier-pupil: 141 71% 48%;
+  --tier-specialist: 189 94% 43%;
+  --tier-expert: 217 91% 60%;
+  --tier-candidate-master: 271 91% 65%;
+  --tier-master: 25 95% 53%;
+  --tier-grandmaster: 0 84% 60%;
+  --tier-legendary: 348 83% 47%;
 }
 
 .dark {
@@ -139,6 +149,15 @@ body {
   --gh-2: #006d32;
   --gh-3: #26a641;
   --gh-4: #39d353;
+
+  --tier-newbie: 156 100% 50%;
+  --tier-pupil: 141 71% 48%;
+  --tier-specialist: 189 94% 43%;
+  --tier-expert: 217 91% 60%;
+  --tier-candidate-master: 271 91% 65%;
+  --tier-master: 25 95% 53%;
+  --tier-grandmaster: 0 84% 60%;
+  --tier-legendary: 348 83% 47%;
 }
 
 /* GitHub Heatmap Animations */
