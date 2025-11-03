@@ -104,6 +104,42 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  // Onboarding fields
+  onboardingCompleted: {
+    type: Boolean,
+    default: false
+  },
+  onboarding: {
+    country: {
+      type: String,
+      maxlength: 100,
+      default: ''
+    },
+    degree: {
+      type: String,
+      maxlength: 100,
+      default: ''
+    },
+    institution: {
+      type: String,
+      maxlength: 200,
+      default: ''
+    },
+    branch: {
+      type: String,
+      maxlength: 100,
+      default: ''
+    },
+    status: {
+      type: String,
+      enum: ['current', 'completed', ''],
+      default: ''
+    },
+    graduationYear: {
+      type: Number,
+      default: null
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now

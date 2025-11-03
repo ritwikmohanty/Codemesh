@@ -12,7 +12,6 @@ const containerVariants = {
   },
 };
 
-// Controls the animation for each text element (fading in and sliding up)
 const itemVariants = {
   hidden: { y: 20, opacity: 0 },
   visible: (customOpacity = 1) => ({ // Accepts a custom final opacity
@@ -26,10 +25,7 @@ const itemVariants = {
 };
 
 
-/**
- * A branding footer component generated from a JSON structure.
- * It features a dark background with two animated text elements.
- */
+
 const BrandingFooter = () => {
   return (
     <motion.footer

@@ -52,6 +52,14 @@ export const api = {
     getProfile: () => apiRequest('/profile'),
     refreshToken: () => apiRequest('/refresh', { method: 'POST' }),
   },
+  onboarding: {
+    getStatus: () => apiRequest('/onboarding/status'),
+    complete: (onboardingData) => apiRequest('/onboarding/complete', {
+      method: 'POST',
+      body: JSON.stringify(onboardingData),
+    }),
+    checkUsername: (username) => apiRequest(`/onboarding/check-username?username=${encodeURIComponent(username)}`),
+  },
 };
 
 export default { ApiError };

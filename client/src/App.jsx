@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {BrowserRouter as Router,Routes,Route,BrowserRouter} from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
+import OnboardingWrapper from './Components/OnboardingWrapper'
 import LandingPage from './Pages/LandingPage'
 import CalendarPage from './Pages/CalendarPage'
 import './index.css'
@@ -17,12 +18,14 @@ const App = () => {
             defaultTheme="system"
             enableSystem
           >
-                <Routes>
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/calendar" element={<CalendarPage />} />
-                    <Route path="/portfolio" element={<Portfolio />} />
-                    <Route path="/leaderboard" element={<Leaderboard />} />
-                </Routes>
+                <OnboardingWrapper>
+                    <Routes>
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/calendar" element={<CalendarPage />} />
+                        <Route path="/portfolio" element={<Portfolio />} />
+                        <Route path="/leaderboard" element={<Leaderboard />} />
+                    </Routes>
+                </OnboardingWrapper>
             </ThemeProvider>
             </BrowserRouter>
         </AuthProvider>

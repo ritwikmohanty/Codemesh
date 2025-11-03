@@ -32,6 +32,8 @@ const authReducer = (state, action) => {
       };
     case 'CLEAR_ERROR':
       return { ...state, error: null };
+    case 'UPDATE_USER':
+      return { ...state, user: { ...state.user, ...action.payload } };
     default:
       return state;
   }
@@ -144,6 +146,10 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: 'CLEAR_ERROR' });
   };
 
+  const updateUser = (userData) => {
+    dispatch({ type: 'UPDATE_USER', payload: userData });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -153,6 +159,7 @@ export const AuthProvider = ({ children }) => {
         signInWithGoogle,
         logout,
         clearError,
+        updateUser,
       }}
     >
       {children}

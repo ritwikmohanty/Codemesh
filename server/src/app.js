@@ -24,6 +24,7 @@ import notificationRoutes from './routes/notificationRoutes.js';
 import portfolioRoutes from './routes/portfolioRoutes.js';
 import platformRoutes from './routes/platformRoutes.js';
 import leaderboardRoutes from './routes/leaderboardRoutes.js';
+import onboardingRoutes from './routes/onboardingRoutes.js';
 
 // Import schedulers
 import { startContestScheduler } from './schedulers/contestScheduler.js';
@@ -93,6 +94,7 @@ try {
   app.use('/api/v1', portfolioRoutes);
   app.use('/api/v1', platformRoutes);
   app.use('/api/v1', leaderboardRoutes);
+  app.use('/api/v1', onboardingRoutes);
 } catch (routeErr) {
   console.error('Route registration error:', routeErr);
   throw routeErr;

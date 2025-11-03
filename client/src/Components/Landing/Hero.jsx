@@ -1,8 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, ChevronRight, Github } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function GradientHero() {
+  const navigate = useNavigate();
+
   return (
     <div className="bg-background relative w-full overflow-hidden">
       {/* Background gradient and grid */}
@@ -60,10 +63,11 @@ export default function GradientHero() {
             className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row"
           >
             <button
+              onClick={() => navigate('/leaderboard')}
               className="group bg-primary text-primary-foreground hover:shadow-primary/30 relative inline-flex h-11 items-center justify-center overflow-hidden rounded-full px-6 font-medium shadow-lg transition-all duration-300"
             >
               <span className="relative z-10 flex items-center">
-                Explore Dashboard
+                Explore Leaderboard
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </span>
               <span className="from-primary via-primary/90 to-primary/80 absolute inset-0 z-0 bg-gradient-to-r opacity-0 transition-opacity duration-300 group-hover:opacity-100"></span>

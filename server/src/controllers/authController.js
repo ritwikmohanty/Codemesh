@@ -56,20 +56,8 @@ export const signup = async (req, res) => {
       });
     }
 
-    // Generate unique username
-    let username = generateUsername(name);
-    let isUsernameUnique = false;
-    let attempts = 0;
-
-    while (!isUsernameUnique && attempts < 10) {
-      const existingUsername = await User.findOne({ username });
-      if (!existingUsername) {
-        isUsernameUnique = true;
-      } else {
-        username = generateUsername(name) + Math.floor(Math.random() * 1000);
-        attempts++;
-      }
-    }
+    // Generate temporary unique username (will be finalized during onboarding)
+    let username = 'user_' + Date.now() + Math.floor(Math.random() * 1000);
 
     // Hash password
     const saltRounds = 12;
@@ -80,7 +68,8 @@ export const signup = async (req, res) => {
       name: name.trim(),
       email: email.toLowerCase().trim(),
       username,
-      password: hashedPassword
+      password: hashedPassword,
+      onboardingCompleted: false // Require onboarding
     });
 
     await user.save();
@@ -103,6 +92,7 @@ export const signup = async (req, res) => {
       username: user.username,
       avatarUrl: user.avatarUrl,
       isEmailVerified: user.isEmailVerified,
+      onboardingCompleted: user.onboardingCompleted,
       createdAt: user.createdAt
     };
 
@@ -159,6 +149,7 @@ export const signin = async (req, res) => {
       username: user.username,
       avatarUrl: user.avatarUrl,
       isEmailVerified: user.isEmailVerified,
+      onboardingCompleted: user.onboardingCompleted,
       createdAt: user.createdAt
     };
 
@@ -185,6 +176,7 @@ export const getProfile = async (req, res) => {
       username: req.user.username,
       avatarUrl: req.user.avatarUrl,
       isEmailVerified: req.user.isEmailVerified,
+      onboardingCompleted: req.user.onboardingCompleted,
       createdAt: req.user.createdAt
     };
 
@@ -285,6 +277,7 @@ export const getOAuthUser = async (req, res) => {
       avatarUrl: req.user.avatarUrl,
       isEmailVerified: req.user.isEmailVerified,
       authProvider: req.user.authProvider,
+      onboardingCompleted: req.user.onboardingCompleted,
       createdAt: req.user.createdAt
     };
 

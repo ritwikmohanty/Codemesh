@@ -38,24 +38,8 @@ passport.use(new GoogleStrategy({
       return done(null, user);
     }
 
-    // Generate unique username from Google profile
-    let username = profile.emails[0].value.split('@')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (username.length < 3) {
-      username += Math.floor(Math.random() * 1000);
-    }
-
-    // Check username uniqueness
-    let isUsernameUnique = false;
-    let attempts = 0;
-    while (!isUsernameUnique && attempts < 10) {
-      const existingUsername = await User.findOne({ username });
-      if (!existingUsername) {
-        isUsernameUnique = true;
-      } else {
-        username = username.slice(0, 15) + Math.floor(Math.random() * 1000);
-        attempts++;
-      }
-    }
+    // Generate temporary unique username from Google profile (will be updated during onboarding)
+    let username = 'user_' + profile.id.slice(-8) + Math.floor(Math.random() * 1000);
 
     console.log('Creating new Google user:', profile.emails[0].value);
     
@@ -67,7 +51,8 @@ passport.use(new GoogleStrategy({
       username,
       authProvider: 'google',
       isEmailVerified: true,
-      avatarUrl: profile.photos[0]?.value || null
+      avatarUrl: profile.photos[0]?.value || null,
+      onboardingCompleted: false // Ensure onboarding is required
     });
 
     await user.save();
