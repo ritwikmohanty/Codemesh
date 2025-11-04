@@ -114,22 +114,26 @@ const Grid = () => {
 
 
           {/* Card 2: Consolidated Profile (Unchanged) */}
-          <div className="bg-card text-card-foreground rounded-lg shadow-md overflow-hidden transition-all hover:shadow-lg">
+          <div className="relative group bg-card text-card-foreground rounded-lg shadow-md overflow-hidden transition-all hover:shadow-lg">
             {/* Top visual part with a larger, muted icon */}
-            <div className="h-64 bg-muted/50 flex items-center justify-center p-4 text-muted-foreground/20">
-              <img
-                    src="/portfolio.png"
-                    alt="Portfolio"
-                    className="hidden dark:block w-[505px] h-auto object-contain shadow-2xl"
-                    draggable={false}
-                    />
-                
-                 <img
-                    src="/portfolio_light.png"
-                    alt="Contest Calendar"
-                    className="block dark:hidden w-[505px] h-auto object-contain shadow-2xl"
-                    draggable={false}
-                    />
+            <div className="relative h-64 bg-muted/50 overflow-hidden">
+              <div className="absolute top-0 left-0 transition-transform duration-300 ease-in-out transform translate-x-20 translate-y-[60px] group-hover:translate-x-16 group-hover:translate-y-[40px]">
+                <img
+                  src="/portfolio.png"
+                  alt="Portfolio"
+                  className="hidden dark:block w-[505px] h-auto object-contain shadow-2xl"
+                  draggable={false}
+                />
+                <img
+                  src="/portfolio_light.png"
+                  alt="Contest Calendar"
+                  className="block dark:hidden w-[505px] h-auto object-contain shadow-2xl"
+                  draggable={false}
+                />
+              </div>
+              <div
+                className="absolute right-0 top-0 bottom-0 z-5 h-full w-[100px] bg-gradient-to-l from-[rgba(255,255,255,0.7)] dark:from-[rgba(0,0,0,0.6)] via-[rgba(255,255,255,0.6)] dark:via-[rgba(0,0,0,0.5)] to-transparent pointer-events-none"
+              />
             </div>
             {/* Text content part */}
             <div className="p-6">
@@ -294,7 +298,7 @@ const Grid = () => {
   {/* Text content part - on top */}
   <div className="p-6">
     <div className="flex items-center gap-3 mb-2">
-      <svg xmlns="http://www.w.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-primary">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-primary">
         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
         <circle cx="12" cy="12" r="3"></circle>
       </svg>

@@ -3,6 +3,7 @@ import PlatformSubmission from '../models/PlatformSubmission.js';
 import PlatformRatingHistory from '../models/PlatformRatingHistory.js';
 import { getConverter, UnifiedConverter } from '../utils/platformConverter.js';
 import { calculateBadges } from '../utils/badgeCalculator.js';
+import { normalizeTopicName, normalizeTopics } from '../utils/topicMapper.js';
 
 /**
  * UnificationService - Converts platform-specific data to unified format
@@ -116,17 +117,37 @@ class UnificationService {
       return;
     }
 
+    // Extract topic distribution from platform-specific data (for LeetCode)
+    let platformTopicDistribution = {};
+    if (platform === 'leetcode' && rawData.statistics?.skillStats) {
+      platformTopicDistribution = this.extractLeetCodeTopics(rawData.statistics.skillStats);
+      // Add to unified topic distribution with normalization
+      this.updateTopicDistributionFromMap(unified.topicDistribution, platformTopicDistribution, platform);
+    }
+
     // Get platform-specific submissions and rating history
     const platformSubmissions = allSubmissions.filter(sub => sub.platform === platform);
     const platformRating = allRatingHistory.filter(rating => rating.platform === platform);
 
-    // Calculate total solved based on platform
+    // Calculate total solved and update category counts
     let totalSolved = 0;
     if (platform === 'leetcode') {
       // For LeetCode, use submitStats from profile data
       const submitStats = rawData.profile?.submitStats?.acSubmissionNum || [];
       const allAcStats = submitStats.find(stat => stat.difficulty === 'All');
       totalSolved = allAcStats?.count || 0;
+      
+      // **CRITICAL FIX**: Update DSA category count for LeetCode
+      unified.overallStats.categories.dsa += totalSolved;
+    } else if (platform === 'codeforces') {
+      // For Codeforces, count accepted submissions
+      const acceptedSubmissions = platformSubmissions.filter(sub => 
+        this.isAcceptedSubmission(sub.quickAccess.verdict, platform)
+      );
+      totalSolved = acceptedSubmissions.length;
+      
+      // **CRITICAL FIX**: Update CP category count for Codeforces
+      unified.overallStats.categories.cp += totalSolved;
     } else {
       // For other platforms, count accepted submissions
       totalSolved = this.countAcceptedSubmissions(platformSubmissions);
@@ -144,21 +165,18 @@ class UnificationService {
       avatarUrl: quickAccess.avatarUrl || '',
       lastSynced: platformData.lastSynced,
       isVerified: false,
-      badgesCount: quickAccess.badgesCount || 0 // Include badge count in linked accounts
+      badgesCount: quickAccess.badgesCount || 0
     });
 
-    // Add platform badges to unified badges - Check multiple locations
+    // Add platform badges to unified badges
     let platformBadges = [];
     
     if (platform === 'leetcode') {
-      // For LeetCode, badges can be in rawData.badges OR rawData.profile.badges
       platformBadges = rawData.badges || rawData.profile?.badges || [];
     } else if (rawData.badges && Array.isArray(rawData.badges)) {
-      // For other platforms, check rawData.badges
       platformBadges = rawData.badges;
     }
 
-    // Add badges to unified portfolio
     if (platformBadges.length > 0) {
       platformBadges.forEach(badge => {
         unified.badges.push({
@@ -178,12 +196,7 @@ class UnificationService {
       this.isAcceptedSubmission(sub.quickAccess.verdict, platform)
     );
 
-    // Convert submissions to unified format
-    const unifiedSubmissions = acceptedSubmissions.map(submission => 
-      this.convertSubmissionToUnified(submission, converter)
-    ).filter(Boolean);
-
-    // For LeetCode, we need to handle difficulty differently since we don't have per-submission difficulty
+    // For LeetCode, handle difficulty distribution differently
     if (platform === 'leetcode') {
       // Add difficulty distribution from submitStats to overall stats
       const submitStats = rawData.profile?.submitStats?.acSubmissionNum || [];
@@ -204,7 +217,11 @@ class UnificationService {
       unified.overallStats.totalSolved += allAcStats?.count || 0;
       unified.overallStats.totalSubmissions += allTotalStats?.submissions || 0;
     } else {
-      // Update overall stats for other platforms
+      // For other platforms, convert submissions to unified format and update stats
+      const unifiedSubmissions = acceptedSubmissions.map(submission => 
+        this.convertSubmissionToUnified(submission, converter)
+      ).filter(Boolean);
+      
       this.updateOverallStats(unified.overallStats, unifiedSubmissions, platformSubmissions);
     }
 
@@ -213,7 +230,9 @@ class UnificationService {
       platformSubmissions, 
       acceptedSubmissions, 
       converter,
-      platform === 'leetcode' ? rawData.profile : null
+      platform === 'leetcode' ? rawData.profile : null,
+      platform,
+      platformTopicDistribution
     );
 
     // Add platform-specific heatmap
@@ -228,17 +247,22 @@ class UnificationService {
     }
     unified.platformStats[platform].heatmap = platformHeatmap;
 
-    // Update activity data - USE ALL SUBMISSIONS for combined heatmap
+    // Update activity data
     if (platform === 'leetcode' && rawData.statistics?.submissionHeatmap) {
-      // Use pre-parsed submission calendar from LeetCode
       this.updateActivityDataFromHeatmap(unified.activityData, rawData.statistics.submissionHeatmap);
     } else {
-      // Calculate heatmap from all submissions (not just accepted)
       this.updateActivityDataFromSubmissions(unified.activityData, platformSubmissions);
     }
 
     // Update topic distribution
-    this.updateTopicDistribution(unified.topicDistribution, unifiedSubmissions);
+    if (platform === 'codeforces') {
+      // For Codeforces, update from unified submissions
+      const unifiedSubmissions = acceptedSubmissions.map(submission => 
+        this.convertSubmissionToUnified(submission, converter)
+      ).filter(Boolean);
+      this.updateTopicDistribution(unified.topicDistribution, unifiedSubmissions);
+    }
+    // For LeetCode, topics are already added from skillStats earlier
 
     // Update language stats
     this.updateLanguageStats(unified.languageStats, platformSubmissions);
@@ -310,12 +334,12 @@ class UnificationService {
 
       if (!unifiedProblem) return null;
 
-      const categoryTopics = converter.tagsToCategories ? 
-        converter.tagsToCategories(problemData.tags || []) : 
-        { category: 'DSA', topics: [] };
+      // For Codeforces: ALL questions are categorized as CP
+      category = 'CP';
       
-      category = categoryTopics.category;
-      topics = categoryTopics.topics;
+      // Extract and normalize topics
+      const tags = problemData.tags || [];
+      topics = normalizeTopics(tags, platform);
     } else if (platform === 'leetcode') {
       // For LeetCode, we need to handle differently since problem data is minimal
       problemData = quickAccess.problemData || {};
@@ -333,9 +357,11 @@ class UnificationService {
         url: `https://leetcode.com/problems/${quickAccess.problemId}`
       };
       
-      // For LeetCode, we'll set default category as DSA
-      // In a real implementation, you'd fetch full problem details
+      // For LeetCode: ALL questions are categorized as DSA
       category = 'DSA';
+      
+      // Topics will be extracted from skillStats at platform level, not per submission
+      // So we leave this empty here
       topics = [];
     } else {
       return null;
@@ -372,7 +398,7 @@ class UnificationService {
       }
     });
 
-    // Update category distribution
+    // Update category distribution - use the category from unified submission
     unifiedSubmissions.forEach(sub => {
       const category = sub.category?.toLowerCase();
       if (category && overallStats.categories.hasOwnProperty(category)) {
@@ -387,9 +413,11 @@ class UnificationService {
    * @param {Array} acceptedSubmissions - Accepted submissions for platform
    * @param {Object} converter - Platform converter
    * @param {Object} profileData - Additional profile data (for LeetCode)
+   * @param {string} platform - Platform name
+   * @param {Object} platformTopicDistribution - Pre-calculated topic distribution for the platform
    * @returns {Object} Platform statistics
    */
-  calculatePlatformStats(allSubmissions, acceptedSubmissions, converter, profileData = null) {
+  calculatePlatformStats(allSubmissions, acceptedSubmissions, converter, profileData = null, platform = '', platformTopicDistribution = {}) {
     let totalSolved, totalSubmissions, acceptanceRate;
     
     if (profileData && profileData.submitStats) {
@@ -423,6 +451,26 @@ class UnificationService {
         .sort((a, b) => new Date(b.quickAccess.timestamp) - new Date(a.quickAccess.timestamp))
         .slice(0, 10)
     };
+
+    // Use pre-calculated topic distribution if available (for LeetCode)
+    if (platform === 'leetcode' && Object.keys(platformTopicDistribution).length > 0) {
+      // Normalize LeetCode topics
+      Object.entries(platformTopicDistribution).forEach(([topic, count]) => {
+        const normalizedTopic = normalizeTopicName(topic, platform);
+        stats.topicDistribution[normalizedTopic] = count;
+      });
+    } else if (platform === 'codeforces') {
+      // For Codeforces, extract topics from submissions
+      acceptedSubmissions.forEach(submission => {
+        const problemData = submission.rawSubmissionData.problem || {};
+        const tags = problemData.tags || [];
+        
+        tags.forEach(tag => {
+          const normalizedTopic = normalizeTopicName(tag, platform);
+          stats.topicDistribution[normalizedTopic] = (stats.topicDistribution[normalizedTopic] || 0) + 1;
+        });
+      });
+    }
 
     if (profileData && profileData.submitStats) {
       // LeetCode: Get difficulty distribution from submitStats
@@ -461,10 +509,52 @@ class UnificationService {
     submissions.forEach(sub => {
       if (sub.topics && Array.isArray(sub.topics)) {
         sub.topics.forEach(topic => {
-          topicDistribution[topic] = (topicDistribution[topic] || 0) + 1;
+          // Normalize the topic name before adding
+          const normalizedTopic = normalizeTopicName(topic, sub.platform);
+          topicDistribution[normalizedTopic] = (topicDistribution[normalizedTopic] || 0) + 1;
         });
       }
     });
+  }
+
+  /**
+   * Update topic distribution from a map (used for LeetCode skillStats)
+   * @param {Object} topicDistribution - Topic distribution object to update
+   * @param {Object} topicMap - Map of topic names to counts
+   * @param {string} platform - Platform name for normalization
+   */
+  updateTopicDistributionFromMap(topicDistribution, topicMap, platform) {
+    Object.entries(topicMap).forEach(([topic, count]) => {
+      // Normalize the topic name before adding
+      const normalizedTopic = normalizeTopicName(topic, platform);
+      topicDistribution[normalizedTopic] = (topicDistribution[normalizedTopic] || 0) + count;
+    });
+  }
+
+  /**
+   * Extract topics from LeetCode skillStats
+   * @param {Object} skillStats - LeetCode skill statistics
+   * @returns {Object} Topic distribution map
+   */
+  extractLeetCodeTopics(skillStats) {
+    const topicDistribution = {};
+    
+    if (!skillStats) return topicDistribution;
+    
+    // Process all skill levels: advanced, intermediate, fundamental
+    ['advanced', 'intermediate', 'fundamental'].forEach(level => {
+      const tags = skillStats[level] || [];
+      tags.forEach(tag => {
+        const topicName = tag.tagName || tag.name;
+        const problemsSolved = tag.problemsSolved || 0;
+        
+        if (topicName && problemsSolved > 0) {
+          topicDistribution[topicName] = problemsSolved;
+        }
+      });
+    });
+    
+    return topicDistribution;
   }
 
   /**

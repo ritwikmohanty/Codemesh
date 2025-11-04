@@ -44,56 +44,6 @@ export const CodeforcesConverter = {
   },
 
   /**
-   * Convert Codeforces tags to unified categories
-   * @param {Array<string>} tags - Codeforces problem tags
-   * @returns {object} Object with unified categories and topics
-   */
-  tagsToCategories(tags) {
-    if (!tags || !Array.isArray(tags)) return { category: 'DSA', topics: [] };
-
-    const categoryMapping = {
-      'implementation': 'Fundamentals',
-      'math': 'Fundamentals', 
-      'number theory': 'Fundamentals',
-      'combinatorics': 'Fundamentals',
-      'constructive algorithms': 'CP',
-      'games': 'CP',
-      'interactive': 'CP',
-      'strings': 'DSA',
-      'data structures': 'DSA',
-      'trees': 'DSA',
-      'graphs': 'DSA',
-      'dp': 'DSA',
-      'dynamic programming': 'DSA',
-      'greedy': 'DSA',
-      'two pointers': 'DSA',
-      'binary search': 'DSA',
-      'sortings': 'DSA',
-      'dfs and similar': 'DSA',
-      'bfs': 'DSA'
-    };
-
-    // Determine primary category
-    let category = 'DSA'; // default
-    for (const tag of tags) {
-      if (categoryMapping[tag.toLowerCase()]) {
-        category = categoryMapping[tag.toLowerCase()];
-        break;
-      }
-    }
-
-    // Normalize topic names
-    const normalizedTopics = tags.map(tag => {
-      const normalized = tag.toLowerCase()
-        .replace(/\s+/g, '_')
-        .replace(/[^\w]/g, '');
-      return normalized;
-    });
-
-    return { category, topics: normalizedTopics };
-  },
-
-  /**
    * Convert Codeforces user rating to unified rating info
    * @param {number} rating - User's current rating
    * @param {number} maxRating - User's maximum rating
@@ -129,16 +79,14 @@ export const CodeforcesConverter = {
    */
   problemToUnified(problem) {
     if (!problem) return null;
-
-    const { category, topics } = this.tagsToCategories(problem.tags);
     
     return {
       id: `${problem.contestId || 'gym'}${problem.index || ''}`,
       name: problem.name,
       difficulty: this.ratingToDifficulty(problem.rating),
       rating: problem.rating || null,
-      category,
-      topics,
+      category: 'CP', // All Codeforces problems are CP
+      topics: problem.tags || [],
       url: problem.contestId ? 
         `https://codeforces.com/problemset/problem/${problem.contestId}/${problem.index}` :
         `https://codeforces.com/gym/problem/${problem.contestId}/${problem.index}`
@@ -183,60 +131,6 @@ export const LeetCodeConverter = {
   },
 
   /**
-   * Convert LeetCode tags to unified categories
-   * @param {Array<Object>} tags - LeetCode topic tags
-   * @returns {object} Object with unified categories and topics
-   */
-  tagsToCategories(tags) {
-    if (!tags || !Array.isArray(tags)) return { category: 'DSA', topics: [] };
-
-    const tagNames = tags.map(tag => typeof tag === 'string' ? tag : tag.name || tag.tagName);
-
-    const categoryMapping = {
-      'math': 'Fundamentals',
-      'bit manipulation': 'Fundamentals',
-      'simulation': 'Fundamentals',
-      'brainteaser': 'CP',
-      'game theory': 'CP',
-      'interactive': 'CP',
-      'string': 'DSA',
-      'array': 'DSA',
-      'hash table': 'DSA',
-      'tree': 'DSA',
-      'graph': 'DSA',
-      'dynamic programming': 'DSA',
-      'greedy': 'DSA',
-      'two pointers': 'DSA',
-      'binary search': 'DSA',
-      'sorting': 'DSA',
-      'depth-first search': 'DSA',
-      'breadth-first search': 'DSA',
-      'backtracking': 'DSA',
-      'stack': 'DSA',
-      'queue': 'DSA',
-      'heap': 'DSA',
-      'linked list': 'DSA'
-    };
-
-    // Determine primary category
-    let category = 'DSA'; // default
-    for (const tag of tagNames) {
-      const tagLower = tag.toLowerCase();
-      if (categoryMapping[tagLower]) {
-        category = categoryMapping[tagLower];
-        break;
-      }
-    }
-
-    // Normalize topic names
-    const normalizedTopics = tagNames.map(tag => 
-      tag.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '')
-    );
-
-    return { category, topics: normalizedTopics };
-  },
-
-  /**
    * Convert LeetCode contest rating to unified rating info
    * @param {number} rating - User's contest rating
    * @param {number} ranking - User's global ranking
@@ -253,7 +147,7 @@ export const LeetCodeConverter = {
 
     return {
       current: rating || 0,
-      max: rating || 0, // LeetCode doesn't track max rating separately
+      max: rating || 0,
       rank: getRankTitle(rating),
       globalRanking: ranking || 0
     };
@@ -266,16 +160,14 @@ export const LeetCodeConverter = {
    */
   problemToUnified(problem) {
     if (!problem) return null;
-
-    const { category, topics } = this.tagsToCategories(problem.topicTags || []);
     
     return {
       id: problem.titleSlug || problem.questionFrontendId,
       name: problem.title,
       difficulty: this.difficultyToUnified(problem.difficulty),
-      rating: null, // LeetCode doesn't have numeric ratings like Codeforces
-      category,
-      topics,
+      rating: null,
+      category: 'DSA', // All LeetCode problems are DSA
+      topics: problem.topicTags || [],
       url: `https://leetcode.com/problems/${problem.titleSlug || problem.questionFrontendId}`,
       isPaidOnly: problem.isPaidOnly || false
     };

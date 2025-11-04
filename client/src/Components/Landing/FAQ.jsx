@@ -73,7 +73,7 @@ const faqItems = [
 export default function FAQ() {
   return (
     <div 
-      className="w-full max-w-4xl mx-auto px-6 py-16"
+      className="w-full max-w-4xl mx-auto px-6 py-16 mb-12"
       style={{
         fontFamily: 'var(--font-sans)',
       }}
