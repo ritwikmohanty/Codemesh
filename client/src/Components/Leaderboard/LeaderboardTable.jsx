@@ -90,7 +90,7 @@ const LeaderboardTable = ({ data, loading, currentPage, onPageChange, totalPages
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 ">
       <div className="rounded-lg border border-border overflow-hidden">
         <Table>
           <TableHeader>

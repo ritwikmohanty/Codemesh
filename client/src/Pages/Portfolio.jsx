@@ -324,9 +324,9 @@ const Portfolio = () => {
       ?.filter(acc => acc.isVerified === true)
       ?.map(acc => acc.platform.charAt(0).toUpperCase() + acc.platform.slice(1)) || [],
     bio: user?.bio || "No bio available",
-    college: user?.college || "Not specified",
-    location: user?.location || "Not specified",
-    nationality: user?.nationality || "Not specified",
+    institution: user?.onboarding?.institution || "Not specified",
+    country: user?.onboarding?.country || "Not specified",
+    degree: user?.onboarding?.degree || "Not specified",
     profileViews: user?.profileViews || 0,
     lastRefresh: portfolio?.linkedAccounts?.[0]?.lastSynced 
       ? new Date(portfolio.linkedAccounts[0].lastSynced).toLocaleString() 
@@ -1085,40 +1085,40 @@ const Portfolio = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mb-1">
-            <GraduationCap size={16} /> College
+            <GraduationCap size={16} /> Institution
           </div>
           <p
             className={`font-medium truncate ${
-              userData.college === "Not specified" ? "text-muted-foreground italic" : ""
+              userData.institution === "Not specified" ? "text-muted-foreground italic" : ""
             }`}
           >
-            {userData.college}
+            {userData.institution}
           </p>
         </div>
 
         <div>
           <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mb-1">
-            <MapPin size={16} /> Location
+            <MapPin size={16} /> Country
           </div>
           <p
             className={`font-medium truncate ${
-              userData.location === "Not specified" ? "text-muted-foreground italic" : ""
+              userData.country === "Not specified" ? "text-muted-foreground italic" : ""
             }`}
           >
-            {userData.location}
+            {userData.country}
           </p>
         </div>
 
         <div>
           <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mb-1">
-            <Users size={16} /> Nationality
+            <Users size={16} /> Degree
           </div>
           <p
             className={`font-medium truncate ${
-              userData.nationality === "Not specified" ? "text-muted-foreground italic" : ""
+              userData.degree === "Not specified" ? "text-muted-foreground italic" : ""
             }`}
           >
-            {userData.nationality}
+            {userData.degree}
           </p>
         </div>
 

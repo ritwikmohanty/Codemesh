@@ -45,7 +45,7 @@ const PodiumBase = ({ height = 200, position }) => {
   const idSuffix = `p${position}`;
 return (
     <div
-        className="w-full rounded-t-xl relative overflow-hidden"
+        className="w-full rounded-t-xl relative overflow-hidden z-0"
         style={{ height: `${height}px`, minWidth: '200px' }}
     >
         <svg
@@ -79,7 +79,7 @@ return (
 );
 };
 
-const Podium = ({ topThree = [], platform = null }) => {
+const Podium = ({ topThree = [], platform = null, revealHeight = 160 }) => {
   if (!topThree || topThree.length < 3) {
     return (
       <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">
@@ -216,7 +216,7 @@ const Podium = ({ topThree = [], platform = null }) => {
   };
 
   return (
-    <div className="w-full py-8">
+    <div className="w-full py-8 relative">
       {/* Desktop View */}
       <div className="hidden md:flex items-end justify-center gap-8 max-w-6xl mx-auto px-4">
         {/* Second Place */}
@@ -235,6 +235,21 @@ const Podium = ({ topThree = [], platform = null }) => {
         <PodiumCard user={topThree[1]} position={2} height={140} />
         <PodiumCard user={topThree[2]} position={3} height={120} />
       </div>
+
+      {/* Single bottom reveal overlay for all podiums */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-10"
+        style={{
+          height: revealHeight,
+          background: `linear-gradient(
+            to top,
+            hsl(var(--background)) 0%,
+            hsl(var(--background) / 1) 55%,
+            transparent 100%
+          )`,
+        }}
+      />
     </div>
   );
 };

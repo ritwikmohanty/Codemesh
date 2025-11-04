@@ -50,24 +50,6 @@ const userSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
-  college: {
-    type: String,
-    maxlength: 100,
-    trim: true,
-    default: ''
-  },
-  location: {
-    type: String,
-    maxlength: 100,
-    trim: true,
-    default: ''
-  },
-  nationality: {
-    type: String,
-    maxlength: 50,
-    trim: true,
-    default: ''
-  },
   socials: {
     github: { type: String, default: '' },
     linkedin: { type: String, default: '' },

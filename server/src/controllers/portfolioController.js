@@ -19,7 +19,7 @@ export async function getMyPortfolio(req, res) {
     
     // Add user information
     const user = await User.findById(userId)
-      .select('username name email avatarUrl bio college location socials')
+      .select('username name email avatarUrl bio onboarding socials')
       .lean();
 
     res.json({
@@ -49,7 +49,7 @@ export async function getPortfolioByUsername(req, res) {
 
     // Find user
     const user = await User.findOne({ username })
-      .select('username name email avatarUrl bio college location socials profileViews')
+      .select('username name email avatarUrl bio onboarding socials profileViews')
       .lean();
 
     if (!user) {

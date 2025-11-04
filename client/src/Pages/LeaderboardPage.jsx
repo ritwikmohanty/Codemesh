@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AppSidebar } from '../components/sidebar/app-sidebar.jsx';
 import Podium from '../components/Leaderboard/Podium';
-import LeaderboardFilters from '../components/Leaderboard/LeaderboardFilters';
+import LeaderboardFilters from '../Components/Leaderboard/LeaderboardFilters';
 import LeaderboardTable from '../components/Leaderboard/LeaderboardTable';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
