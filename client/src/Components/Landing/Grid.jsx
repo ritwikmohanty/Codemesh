@@ -117,9 +117,19 @@ const Grid = () => {
           <div className="bg-card text-card-foreground rounded-lg shadow-md overflow-hidden transition-all hover:shadow-lg">
             {/* Top visual part with a larger, muted icon */}
             <div className="h-64 bg-muted/50 flex items-center justify-center p-4 text-muted-foreground/20">
-              <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>
-              </svg>
+              <img
+                    src="/portfolio.png"
+                    alt="Portfolio"
+                    className="hidden dark:block w-[505px] h-auto object-contain shadow-2xl"
+                    draggable={false}
+                    />
+                
+                 <img
+                    src="/portfolio_light.png"
+                    alt="Contest Calendar"
+                    className="block dark:hidden w-[505px] h-auto object-contain shadow-2xl"
+                    draggable={false}
+                    />
             </div>
             {/* Text content part */}
             <div className="p-6">

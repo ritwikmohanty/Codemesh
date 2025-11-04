@@ -105,10 +105,16 @@ export default function GradientHero() {
                 </div>
               </div>
               <div className="relative">
+                {/* Show dashboard_light.png for light mode, dashboard.png for dark mode */}
                 <img
-                  src="https://i.postimg.cc/0yk8Vz7t/dashboard.webp"
+                  src="/dashboard.png"
                   alt="CodeMesh Dashboard Preview"
-                  className="w-full"
+                  className="w-full dark:block hidden"
+                />
+                <img
+                  src="/dashboard_light.png"
+                  alt="CodeMesh Dashboard Preview (Light)"
+                  className="w-full dark:hidden block"
                 />
                 <div className="from-background absolute inset-0 bg-gradient-to-t to-transparent opacity-0"></div>
               </div>
