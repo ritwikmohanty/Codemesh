@@ -1,7 +1,7 @@
 import React from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.@/ui/select';
-import { Input } from '.@/ui/input';
-import { Button } from '.@/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
 import { Search, Filter, RefreshCw } from 'lucide-react';
 
 const TIERS = [

@@ -284,7 +284,7 @@ const LeaderboardPage = () => {
                                         The highest-rated coders by CodeMesh Master Rating
                                     </CardDescription>
                                 </CardHeader> */}
-                                <CardContent>
+                                <CardContent className="pb-0">
                                     <Podium topThree={topThree} platform={null} />
                                 </CardContent>
                             {/* </Card> */}
@@ -339,7 +339,7 @@ const LeaderboardPage = () => {
                                         The highest-rated coders on Codeforces
                                     </CardDescription>
                                 </CardHeader> */}
-                                <CardContent>
+                                <CardContent className="pb-0">
                                     {cfTopThree.length > 0 ? (
                                         <Podium topThree={cfTopThree} platform="codeforces" />
                                     ) : (
@@ -387,7 +387,7 @@ const LeaderboardPage = () => {
                                         The highest-rated coders on LeetCode
                                     </CardDescription>
                                 </CardHeader> */}
-                                <CardContent>
+                                <CardContent className="pb-0">
                                     {lcTopThree.length > 0 ? (
                                         <Podium topThree={lcTopThree} platform="leetcode" />
                                     ) : (

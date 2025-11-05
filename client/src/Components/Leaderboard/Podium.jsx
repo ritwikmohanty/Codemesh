@@ -216,7 +216,7 @@ const Podium = ({ topThree = [], platform = null, revealHeight = 160 }) => {
   };
 
   return (
-    <div className="w-full py-8 relative">
+    <div className="w-full pt-8 relative">
       {/* Desktop View */}
       <div className="hidden md:flex items-end justify-center gap-8 max-w-6xl mx-auto px-4">
         {/* Second Place */}
@@ -239,7 +239,7 @@ const Podium = ({ topThree = [], platform = null, revealHeight = 160 }) => {
       {/* Single bottom reveal overlay for all podiums */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-10"
+        className="pointer-events-none absolute inset-x-0 -bottom-6 z-10"
         style={{
           height: revealHeight,
           background: `linear-gradient(

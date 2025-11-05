@@ -1,18 +1,63 @@
 import CountUp from '../ui/CountUp'
 import { VelocityScroll } from '@/components/ui/scrollbasedvelocity';
+import { useTheme } from 'next-themes'; 
 
 export default function Page() {
+  const { theme } = useTheme(); // Get current theme
+
   const platforms = [
-    { name: 'Codeforces', logo: '/Codeforces_logo.svg' },
-    { name: 'CodeChef', logo: '/cc-logo.png' },
-    { name: 'LeetCode', logo: '/LeetCodeLogo.png' },
-    { name: 'AtCoder', logo: '/atcoder_logo.png' },
-    { name: 'GeeksforGeeks', logo: '/gfg_logo.png' },
-    { name: 'Coding Ninjas', logo: '/coding-ninjas-logo.png' },
-    { name: 'HackerRank', logo: '/Hackerrank_Logo.svg' },
-    { name: 'CSES', logo: '/cses_logo.png' },
-    { name: 'HackerEarth', logo: '/hackerearth_logo.png' },
+    { 
+      name: 'Codeforces', 
+      logoLight: '/Codeforces_logo.svg', 
+      logoDark: '/Codeforces_dark.svg' 
+    },
+    { 
+      name: 'CodeChef', 
+      logoLight: '/cc-logo.png', 
+      logoDark: '/cc-logo.png' 
+    },
+    { 
+      name: 'LeetCode', 
+      logoLight: '/LeetCodeLogo.png', 
+      logoDark: '/leetcode_dark.svg' 
+    },
+    { 
+      name: 'AtCoder', 
+      logoLight: '/Atcoder.svg', 
+      logoDark: '/atcode_dark.svg' 
+    },
+    { 
+      name: 'GeeksforGeeks', 
+      logoLight: '/gfg_logo.png', 
+      logoDark: '/geekforgeeks_dark.svg' 
+    },
+    { 
+      name: 'Coding Ninjas', 
+      logoLight: '/coding-ninjas-logo.png', 
+      logoDark: '/Codingninjas_dark.svg' 
+    },
+    { 
+      name: 'HackerRank', 
+      logoLight: '/Hackerrank_Logo.svg', 
+      logoDark: '/hackerrank_dark.svg' 
+    },
+    { 
+      name: 'CSES', 
+      logoLight: '/cses_logo.png', 
+      logoDark: '/cses_logo.png' 
+    },
+    { 
+      name: 'HackerEarth', 
+      logoLight: '/hackerearth_logo.png', 
+      logoDark: '/hackerearth_logo.png' 
+    },
   ]
+
+  // Map platforms to include the correct logo based on theme
+  const themedPlatforms = platforms.map(platform => ({
+    ...platform,
+    logo: theme === 'dark' ? platform.logoDark : platform.logoLight
+  }));
 
   return (
     <div
@@ -66,7 +111,7 @@ export default function Page() {
         <div className="mt-14 max-w-full mx-auto">
           <VelocityScroll
             className="text-center"
-            platforms={platforms}
+            platforms={themedPlatforms}
             default_velocity={2}
           />
         </div>
