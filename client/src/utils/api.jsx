@@ -15,7 +15,7 @@ const apiRequest = async (endpoint, options = {}) => {
       'Content-Type': 'application/json',
       ...options.headers,
     },
-    credentials: 'include', // Include cookies
+    credentials: 'include', // Include cookies for authentication
     ...options,
   };
 

@@ -8,21 +8,13 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Include cookies if needed
+  withCredentials: true, // Include cookies for authentication
 });
 
-// Add auth token to requests
+// Remove auth token interceptor since we're using cookies
+// Add request interceptor for debugging
 apiClient.interceptors.request.use((config) => {
-  // Try multiple token storage locations
-  const token = localStorage.getItem('token') || 
-                localStorage.getItem('authToken') || 
-                sessionStorage.getItem('token');
-  
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  
-  console.log('Making request to:', config.url, 'with token:', token ? 'present' : 'missing');
+  console.log('Making request to:', config.url, 'with cookies (withCredentials: true)');
   return config;
 }, (error) => {
   return Promise.reject(error);

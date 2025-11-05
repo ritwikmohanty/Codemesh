@@ -207,25 +207,9 @@ const Portfolio = () => {
       setIsPublicProfile(true)
       fetchPortfolioData()
     } else {
-      // Viewing own profile - check authentication
-      const checkAuth = () => {
-        const token = localStorage.getItem('token') || 
-                      localStorage.getItem('authToken') || 
-                      sessionStorage.getItem('token');
-        
-        if (!token) {
-          console.error('No authentication token found');
-          setError('Please login to view your portfolio');
-          setLoading(false);
-          return false;
-        }
-        return true;
-      };
-
-      if (checkAuth()) {
-        setIsPublicProfile(false)
-        fetchPortfolioData();
-      }
+      // Viewing own profile - authentication will be checked by API call
+      setIsPublicProfile(false)
+      fetchPortfolioData();
     }
   }, [username])
 
@@ -255,7 +239,7 @@ const Portfolio = () => {
         // Fetch public profile by username
         response = await getPortfolioByUsername(username)
       } else {
-        // Fetch authenticated user's profile
+        // Fetch authenticated user's profile - cookies will be sent automatically
         response = await getMyPortfolio()
       }
       
@@ -269,11 +253,12 @@ const Portfolio = () => {
       
       // Handle specific error cases
       if (err.message?.includes('401') || err.message?.includes('403') || 
-          err.message?.includes('token') || err.message?.includes('Unauthorized')) {
+          err.message?.includes('token') || err.message?.includes('Unauthorized') ||
+          err.message?.includes('Access token required')) {
         errorMessage = 'Authentication failed. Please login again.';
         // Optionally redirect to login after a delay
         setTimeout(() => {
-          navigate('/login');
+          navigate('/');
         }, 3000);
       } else if (err.message?.includes('Network Error') || err.message?.includes('ECONNREFUSED')) {
         errorMessage = 'Cannot connect to server. Please check if the backend is running.';
@@ -313,10 +298,10 @@ const Portfolio = () => {
             </button>
             {error.includes('login') && (
               <button
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/')}
                 className="px-6 py-3 bg-secondary text-secondary-foreground rounded-md font-medium hover:opacity-90 transition"
               >
-                Go to Login
+                Go to Home
               </button>
             )}
           </div>

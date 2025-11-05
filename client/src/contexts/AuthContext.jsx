@@ -84,6 +84,7 @@ export const AuthProvider = ({ children }) => {
   const checkAuth = async () => {
     try {
       dispatch({ type: 'AUTH_START' });
+      // No need to check localStorage - cookies will be sent automatically
       const response = await api.auth.getProfile();
       dispatch({ type: 'AUTH_SUCCESS', payload: response });
     } catch (error) {
