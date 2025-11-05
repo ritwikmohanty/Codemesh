@@ -60,6 +60,27 @@ export const api = {
     }),
     checkUsername: (username) => apiRequest(`/onboarding/check-username?username=${encodeURIComponent(username)}`),
   },
+  users: {
+    getLinkedPlatforms: () => apiRequest('/users/platforms'),
+    updateProfile: (profileData) => apiRequest('/users/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData),
+    }),
+    updateSocials: (socialsData) => apiRequest('/users/socials', {
+      method: 'PUT',
+      body: JSON.stringify(socialsData),
+    }),
+    changePassword: (passwordData) => apiRequest('/users/password', {
+      method: 'PUT',
+      body: JSON.stringify(passwordData),
+    }),
+  },
+  platform: {
+    sync: (platformData) => apiRequest('/platform/sync', {
+      method: 'POST',
+      body: JSON.stringify(platformData),
+    }),
+  },
 };
 
 export default { ApiError };
