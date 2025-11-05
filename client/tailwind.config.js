@@ -97,6 +97,43 @@ module.exports = {
   					opacity: '1'
   				}
   			},
+  			scaleIn: {
+  				'0%': {
+  					transform: 'scale(0.95)',
+  					opacity: '0'
+  				},
+  				'100%': {
+  					transform: 'scale(1)',
+  					opacity: '1'
+  				}
+  			},
+  			scaleOut: {
+  				'0%': {
+  					transform: 'scale(1)',
+  					opacity: '1'
+  				},
+  				'100%': {
+  					transform: 'scale(0.95)',
+  					opacity: '0'
+  				}
+  			},
+  			bounceIn: {
+  				'0%': {
+  					transform: 'scale(0.3) translateY(-20px)',
+  					opacity: '0'
+  				},
+  				'50%': {
+  					transform: 'scale(1.05)',
+  					opacity: '1'
+  				},
+  				'70%': {
+  					transform: 'scale(0.95)'
+  				},
+  				'100%': {
+  					transform: 'scale(1)',
+  					opacity: '1'
+  				}
+  			},
   			'accordion-down': {
   				from: {
   					height: '0'
@@ -132,6 +169,9 @@ module.exports = {
   		},
   		animation: {
   			'slide-down-fade': 'slideDownFadeIn 300ms ease-out both',
+  			'scale-in': 'scaleIn 0.3s ease-out',
+  			'scale-out': 'scaleOut 0.2s ease-in',
+  			'bounce-in': 'bounceIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			blob: 'blob 14s ease-in-out infinite'

@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import {
   Trophy,
   Target,
@@ -25,7 +25,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { getMyPortfolio } from "@/services/portfolioService"
+import { getMyPortfolio, getPortfolioByUsername } from "@/services/portfolioService"
 import { ProblemDistributionPieChart } from "@/components/ui/problem-distribution-pie-chart"
 import { CategoryDistributionPieChart } from "@/components/ui/category-distribution-pie-chart"
 
@@ -191,39 +191,43 @@ const PortfolioSkeleton = () => (
 
 const Portfolio = () => {
   const navigate = useNavigate()
+  const { username } = useParams() // Get username from URL params
   const [selectedPlatform, setSelectedPlatform] = useState("all")
   const [selectedYear, setSelectedYear] = useState("current") // Changed default to "current"
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [portfolioData, setPortfolioData] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [isPublicProfile, setIsPublicProfile] = useState(false)
 
-  // Check authentication on mount
+  // Determine if viewing own profile or public profile
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('token') || 
-                    localStorage.getItem('authToken') || 
-                    sessionStorage.getItem('token');
-      
-      if (!token) {
-        console.error('No authentication token found');
-        setError('Please login to view your portfolio');
-        setLoading(false);
-        return false;
+    if (username) {
+      // Viewing another user's profile
+      setIsPublicProfile(true)
+      fetchPortfolioData()
+    } else {
+      // Viewing own profile - check authentication
+      const checkAuth = () => {
+        const token = localStorage.getItem('token') || 
+                      localStorage.getItem('authToken') || 
+                      sessionStorage.getItem('token');
+        
+        if (!token) {
+          console.error('No authentication token found');
+          setError('Please login to view your portfolio');
+          setLoading(false);
+          return false;
+        }
+        return true;
+      };
+
+      if (checkAuth()) {
+        setIsPublicProfile(false)
+        fetchPortfolioData();
       }
-      return true;
-    };
-
-    if (checkAuth()) {
-      fetchPortfolioData();
     }
-  }, [])
-
-  
-  // Fetch portfolio data on mount
-  useEffect(() => {
-    fetchPortfolioData()
-  }, [])
+  }, [username])
 
   useLayoutEffect(() => {
     const updateHeight = () => {
@@ -245,7 +249,16 @@ const Portfolio = () => {
       setError(null)
       
       console.log('Fetching portfolio data...');
-      const response = await getMyPortfolio()
+      let response;
+      
+      if (username) {
+        // Fetch public profile by username
+        response = await getPortfolioByUsername(username)
+      } else {
+        // Fetch authenticated user's profile
+        response = await getMyPortfolio()
+      }
+      
       console.log('Portfolio data received:', response);
       
       setPortfolioData(response.data)

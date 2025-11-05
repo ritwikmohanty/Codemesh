@@ -35,6 +35,7 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar"
 import { SiteHeader } from "@/components/sidebar/site-header"
+import SearchUsersModal from "@/components/SearchUsersModal"
 import LogoLight from '/Logof.png';
 import LogoDark from '/Logod.png';
 import { Link } from "react-router-dom"
@@ -193,9 +194,42 @@ const data = {
 
 export function AppSidebar({ children, ...props }) {
   const isDarkTheme = useTheme();
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+
+  // Handle Ctrl+K keyboard shortcut
+  React.useEffect(() => {
+    const handleKeydown = (e) => {
+      // Ctrl+K or Cmd+K to open search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeydown);
+    return () => {
+      document.removeEventListener('keydown', handleKeydown);
+    };
+  }, []);
+
+  // Create nav secondary items with search handler
+  const navSecondaryWithHandlers = data.navSecondary.map(item => {
+    if (item.title === "Search") {
+      return {
+        ...item,
+        onClick: () => setIsSearchOpen(true)
+      };
+    }
+    return item;
+  });
 
   return (
-    <SidebarProvider 
+    <>
+      <SearchUsersModal 
+        isOpen={isSearchOpen} 
+        onClose={() => setIsSearchOpen(false)} 
+      />
+      <SidebarProvider 
     style={
         {
           "--sidebar-width": "calc(var(--spacing) * 72)",
@@ -225,7 +259,7 @@ export function AppSidebar({ children, ...props }) {
         <SidebarContent>
           <NavMain items={data.navMain} />
 
-          <NavSecondary items={data.navSecondary} className="mt-auto" />
+          <NavSecondary items={navSecondaryWithHandlers} className="mt-auto" />
         </SidebarContent>
         <SidebarFooter>
           <NavUser />
@@ -238,5 +272,6 @@ export function AppSidebar({ children, ...props }) {
         </div>
       </SidebarInset>
     </SidebarProvider>
+    </>
   )
 }

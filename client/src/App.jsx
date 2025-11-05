@@ -23,6 +23,7 @@ const App = () => {
                         <Route path="/" element={<LandingPage />} />
                         <Route path="/calendar" element={<CalendarPage />} />
                         <Route path="/portfolio" element={<Portfolio />} />
+                        <Route path="/portfolio/:username" element={<Portfolio />} />
                         <Route path="/leaderboard" element={<Leaderboard />} />
                     </Routes>
                 </OnboardingWrapper>
