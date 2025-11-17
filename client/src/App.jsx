@@ -5,7 +5,7 @@ import OnboardingWrapper from './Components/OnboardingWrapper'
 import LandingPage from './Pages/LandingPage'
 import CalendarPage from './Pages/CalendarPage'
 import './index.css'
-import { ThemeProvider } from "@/components/ui/theme-provider"
+import { ThemeProvider } from "./components/ui/theme-provider"
 import Portfolio from './Pages/Portfolio'
 import Leaderboard from './Pages/LeaderboardPage'
 import Settings from './Pages/Settings'
