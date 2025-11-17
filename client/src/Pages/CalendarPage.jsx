@@ -41,7 +41,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Clock, Globe, Bell, Calendar, Filter, ChevronDown, X, Settings, User, Download, Plus } from 'lucide-react';
-// import Navbar from '../Components/Navbar.jsx';
+// import Navbar from '../components/Navbar.jsx';
 import { useAuth } from '../contexts/AuthContext';
 import { addToCalendar, generateGoogleCalendarURL, generateOutlookCalendarURL } from '../utils/calendarUtils';
 import { AppSidebar } from '../components/sidebar/app-sidebar.jsx';

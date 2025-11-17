@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import OnboardingModal from '../Components/OnboardingModal';
+import OnboardingModal from '../components/OnboardingModal';
 
 export default function OnboardingWrapper({ children }) {
   const { isAuthenticated, user, updateUser } = useAuth();

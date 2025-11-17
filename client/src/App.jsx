@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {BrowserRouter as Router,Routes,Route,BrowserRouter} from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
-import OnboardingWrapper from './Components/OnboardingWrapper'
+import OnboardingWrapper from './components/OnboardingWrapper'
 import LandingPage from './Pages/LandingPage'
 import CalendarPage from './Pages/CalendarPage'
 import './index.css'
