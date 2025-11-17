@@ -122,13 +122,13 @@ export const AuthProvider = ({ children }) => {
       ? window.location.pathname 
       : '/';
     
-    console.log('Starting Google OAuth from path:', currentPath); // Debug log
+    // console.log('Starting Google OAuth from path:', currentPath); 
     
     // Pass redirect path as query parameter to the OAuth URL
     const redirectParam = currentPath !== '/' ? `?redirect=${encodeURIComponent(currentPath)}` : '';
     const oauthUrl = `${API_URL}/auth/google${redirectParam}`;
     
-    console.log('OAuth URL:', oauthUrl); // Debug log
+    // console.log('OAuth URL:', oauthUrl); 
     
     window.location.href = oauthUrl;
   };
