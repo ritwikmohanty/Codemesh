@@ -34,6 +34,9 @@ import { startLeaderboardScheduler } from './schedulers/leaderboardScheduler.js'
 
 const app = express();
 
+// Trust proxy - required for HTTPS redirect on Render
+app.set('trust proxy', 1);
+
 // Validate required environment variables
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
   console.error('Missing required Google OAuth environment variables');
