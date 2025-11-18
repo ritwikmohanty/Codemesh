@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect } from "react"
+import { useState, useEffect, useLayoutEffect, useRef } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import {
   Trophy,
@@ -199,6 +199,7 @@ const Portfolio = () => {
   const [portfolioData, setPortfolioData] = useState(null)
   const [refreshing, setRefreshing] = useState(false)
   const [isPublicProfile, setIsPublicProfile] = useState(false)
+  const [isCopied, setIsCopied] = useState(false)
 
   // Determine if viewing own profile or public profile
   useEffect(() => {
@@ -722,7 +723,262 @@ const Portfolio = () => {
 
   const ratingChartData = generateRatingChartData();
 
-  const RatingChart = ({ datasets }) => {
+  // New: Highcharts-based rating chart (animated, theme-aware)
+  const HighchartsRatingChart = ({ datasets }) => {
+    const containerRef = useRef(null);
+    const [hasAnimated, setHasAnimated] = useState(false);
+    const [isDark, setIsDark] = useState(
+      typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+    );
+
+    // Watch for theme changes
+    useEffect(() => {
+      const checkTheme = () => {
+        const isDarkMode = document.documentElement.classList.contains('dark');
+        setIsDark(isDarkMode);
+      };
+
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+            checkTheme();
+          }
+        });
+      });
+
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class']
+      });
+
+      return () => observer.disconnect();
+    }, []);
+
+    // Intersection Observer for scroll-based animation
+    useEffect(() => {
+      const el = containerRef.current;
+      if (!el) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && !hasAnimated) {
+              setHasAnimated(true);
+            }
+          });
+        },
+        { threshold: 0.2 }
+      );
+
+      observer.observe(el);
+      return () => observer.disconnect();
+    }, [hasAnimated]);
+
+    useEffect(() => {
+      let chart;
+      let destroyed = false;
+      const el = containerRef.current;
+      if (!el || !hasAnimated) return;
+
+      const loadHighcharts = () =>
+        new Promise((resolve, reject) => {
+          if (window.Highcharts) return resolve(window.Highcharts);
+          const s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/highcharts/11.4.0/highcharts.min.js";
+          s.async = true;
+          s.onload = () => resolve(window.Highcharts);
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+
+      const hslVar = (name) => {
+        const v = getComputedStyle(el).getPropertyValue(name).trim();
+        return v ? `hsl(${v})` : undefined;
+      };
+
+      const renderChart = (Highcharts) => {
+        // Plugin: animate line draw + axis transitions (as provided)
+        (function (H) {
+          const animateSVGPath = (svgElem, animation, callback = void 0) => {
+            if (!svgElem || !svgElem.element || !svgElem.element.getTotalLength) return;
+            const length = svgElem.element.getTotalLength();
+            svgElem.attr({
+              'stroke-dasharray': length,
+              'stroke-dashoffset': length,
+              opacity: 1
+            });
+            svgElem.animate({
+              'stroke-dashoffset': 0
+            }, animation, callback);
+          };
+
+          // Hook into line series animate for path drawing animation
+          if (H.seriesTypes.line && !H.seriesTypes.line.prototype.__codemeshAnimateHooked) {
+            H.seriesTypes.line.prototype.animate = function (init) {
+              const series = this;
+              const animation = H.animObject(series.options.animation);
+              
+              if (!init && series.graph) {
+                animateSVGPath(series.graph, animation);
+              }
+            };
+            H.seriesTypes.line.prototype.__codemeshAnimateHooked = true;
+          }
+
+          // Hook into spline series (inherits from line but may override)
+          if (H.seriesTypes.spline && !H.seriesTypes.spline.prototype.__codemeshAnimateHooked) {
+            H.seriesTypes.spline.prototype.animate = function (init) {
+              const series = this;
+              const animation = H.animObject(series.options.animation);
+              
+              if (!init && series.graph) {
+                animateSVGPath(series.graph, animation);
+              }
+            };
+            H.seriesTypes.spline.prototype.__codemeshAnimateHooked = true;
+          }
+
+          // Axis animation on first render
+          if (!H.__codemeshAxisHooked) {
+            H.addEvent(H.Axis, 'afterRender', function () {
+              const axis = this;
+              const chart = axis.chart;
+              const animation = H.animObject(chart.renderer.globalAnimation);
+
+              if (axis.axisGroup && !axis.axisGroup.__animated) {
+                axis.axisGroup
+                  .attr({
+                    opacity: 0,
+                    rotation: -3,
+                    scaleY: 0.9
+                  })
+                  .animate({
+                    opacity: 1,
+                    rotation: 0,
+                    scaleY: 1
+                  }, animation);
+                axis.axisGroup.__animated = true;
+              }
+
+              if (axis.labelGroup && !axis.labelGroup.__animated) {
+                if (axis.horiz) {
+                  axis.labelGroup
+                    .attr({
+                      opacity: 0,
+                      rotation: 3,
+                      scaleY: 0.5
+                    })
+                    .animate({
+                      opacity: 1,
+                      rotation: 0,
+                      scaleY: 1
+                    }, animation);
+                } else {
+                  axis.labelGroup
+                    .attr({
+                      opacity: 0,
+                      rotation: 3,
+                      scaleX: -0.5
+                    })
+                    .animate({
+                      opacity: 1,
+                      rotation: 0,
+                      scaleX: 1
+                    }, animation);
+                }
+                axis.labelGroup.__animated = true;
+              }
+            });
+            H.__codemeshAxisHooked = true;
+          }
+        })(Highcharts);
+
+        const bg = hslVar('--card') || '#fff';
+        const fg = hslVar('--foreground') || '#111';
+        const border = hslVar('--border') || '#e5e7eb';
+        const muted = hslVar('--muted-foreground') || '#6b7280';
+        const tooltipBg = hslVar('--card') || '#fff';
+        const tooltipBorder = border;
+
+        const series = datasets.map((ds, idx) => ({
+          type: 'spline',
+          name: ds.platform.charAt(0).toUpperCase() + ds.platform.slice(1),
+          data: ds.data.map(p => [p.date.getTime(), p.rating]),
+          color: getPlatformColor(ds.platform),
+          marker: { enabled: true, radius: 3 },
+          lineWidth: 2,
+          animation: { 
+            duration: 1000,
+            defer: idx * 1000
+          }
+        }));
+
+        chart = Highcharts.chart(el, {
+          chart: {
+            backgroundColor: bg,
+            style: {
+              fontFamily:
+                getComputedStyle(document.documentElement).getPropertyValue('--font-sans') ||
+                'Poppins, ui-sans-serif, system-ui, sans-serif'
+            }
+          },
+          title: { text: '', align: 'left' },
+          subtitle: { text: '', align: 'left' },
+          credits: { enabled: false },
+          xAxis: {
+            type: 'datetime',
+            lineColor: border,
+            tickColor: border,
+            labels: { style: { color: muted } }
+          },
+          yAxis: {
+            title: { text: 'Rating', style: { color: fg } },
+            gridLineColor: border,
+            labels: { style: { color: muted } }
+          },
+          legend: {
+            layout: 'vertical',
+            align: 'right',
+            verticalAlign: 'middle',
+            itemStyle: { color: fg },
+            itemHoverStyle: { color: fg }
+          },
+          tooltip: {
+            shared: true,
+            xDateFormat: '%b %e, %Y',
+            backgroundColor: tooltipBg,
+            borderColor: tooltipBorder,
+            style: { color: fg }
+          },
+          plotOptions: {
+            series: {
+              animation: { duration: 1000 },
+              label: { connectorAllowed: false }
+            }
+          },
+          series,
+          responsive: {
+            rules: [{
+              condition: { maxWidth: 768 },
+              chartOptions: {
+                legend: {
+                  layout: 'horizontal',
+                  align: 'center',
+                  verticalAlign: 'bottom'
+                }
+              }
+            }]
+          }
+        });
+      };
+
+      loadHighcharts()
+        .then((H) => { if (!destroyed) renderChart(H); })
+        .catch(() => { /* noop */ });
+
+      return () => { destroyed = true; if (chart) chart.destroy(); };
+    }, [datasets, hasAnimated, isDark]);
+
     if (!datasets || datasets.length === 0) {
       return (
         <div className="text-center py-12 text-muted-foreground">
@@ -732,223 +988,14 @@ const Portfolio = () => {
       );
     }
 
-    let minRating = Infinity;
-    let maxRating = -Infinity;
-    
-    datasets.forEach(dataset => {
-      dataset.data.forEach(point => {
-        minRating = Math.min(minRating, point.rating);
-        maxRating = Math.max(maxRating, point.rating);
-      });
-    });
-
-    const ratingRange = maxRating - minRating;
-    const padding = Math.max(ratingRange * 0.1, 100);
-    minRating = Math.floor((minRating - padding) / 100) * 100;
-    maxRating = Math.ceil((maxRating + padding) / 100) * 100;
-
-    const chartWidth = 600;
-    const chartHeight = 300;
-    const paddingLeft = 60;
-    const paddingRight = 40*3/4;
-    const paddingTop = 40*3/4;
-    const paddingBottom = 60*3/4;
-
-    const graphWidth = chartWidth - paddingLeft - paddingRight;
-    const graphHeight = chartHeight - paddingTop - paddingBottom;
-
-    let minDate = new Date(Math.min(...datasets.flatMap(ds => ds.data.map(d => d.date.getTime()))));
-    let maxDate = new Date(Math.max(...datasets.flatMap(ds => ds.data.map(d => d.date.getTime()))));
-
-    const scaleX = (date) => {
-      const timeDiff = date.getTime() - minDate.getTime();
-      const totalTime = maxDate.getTime() - minDate.getTime();
-      return paddingLeft + (timeDiff / totalTime) * graphWidth;
-    };
-
-    const scaleY = (rating) => {
-      const ratingDiff = maxRating - rating;
-      const totalRating = maxRating - minRating;
-      return paddingTop + (ratingDiff / totalRating) * graphHeight;
-    };
-
-    const generatePath = (data) => {
-      if (data.length === 0) return "";
-      
-      let path = `M ${scaleX(data[0].date)} ${scaleY(data[0].rating)}`;
-      
-      for (let i = 1; i < data.length; i++) {
-        path += ` L ${scaleX(data[i].date)} ${scaleY(data[i].rating)}`;
-      }
-      
-      return path;
-    };
-
-    const yAxisSteps = 5;
-    const yAxisLabels = [];
-    for (let i = 0; i <= yAxisSteps; i++) {
-      const rating = minRating + ((maxRating - minRating) * i / yAxisSteps);
-      yAxisLabels.push(Math.round(rating));
-    }
-
-    const xAxisSteps = 6;
-    const xAxisLabels = [];
-    for (let i = 0; i <= xAxisSteps; i++) {
-      const time = minDate.getTime() + ((maxDate.getTime() - minDate.getTime()) * i / xAxisSteps);
-      const date = new Date(time);
-      xAxisLabels.push({
-        date,
-        label: date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-      });
-    }
-
     return (
-      <div className="w-full overflow-x-auto">
-        <svg 
-          width={chartWidth} 
-          height={chartHeight}
-          className="bg-card rounded-lg font-sans min-w-full"
-        >
-          {/* Grid lines */}
-          {yAxisLabels.map((rating, i) => (
-            <g key={`grid-y-${i}`}>
-              <line
-                x1={paddingLeft}
-                y1={scaleY(rating)}
-                x2={chartWidth - paddingRight}
-                y2={scaleY(rating)}
-                stroke="hsl(var(--border))"
-                strokeWidth="1"
-                strokeDasharray="4,4"
-              />
-              <text
-                x={paddingLeft - 10}
-                y={scaleY(rating)}
-                textAnchor="end"
-                dominantBaseline="middle"
-                fill="hsl(var(--muted-foreground))"
-                fontSize="12"
-              >
-                {rating}
-              </text>
-            </g>
-          ))}
-
-          {/* X-axis labels */}
-          {xAxisLabels.map((item, i) => (
-            <g key={`grid-x-${i}`}>
-              <line
-                x1={scaleX(item.date)}
-                y1={paddingTop}
-                x2={scaleX(item.date)}
-                y2={chartHeight - paddingBottom}
-                stroke="hsl(var(--border))"
-                strokeWidth="1"
-                strokeDasharray="4,4"
-              />
-              <text
-                x={scaleX(item.date)}
-                y={chartHeight - paddingBottom + 20}
-                textAnchor="middle"
-                fill="hsl(var(--muted-foreground))"
-                fontSize="12"
-              >
-                {item.label}
-              </text>
-            </g>
-          ))}
-
-          {/* Rating lines */}
-          {datasets.map((dataset, idx) => (
-            <g key={`platform-${idx}`}>
-              <path
-                d={generatePath(dataset.data)}
-                fill="none"
-                stroke={dataset.color}
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              
-              {dataset.data.map((point, pointIdx) => (
-                <g key={`point-${idx}-${pointIdx}`}>
-                  <circle
-                    cx={scaleX(point.date)}
-                    cy={scaleY(point.rating)}
-                    r="4"
-                    fill={dataset.color}
-                    stroke="hsl(var(--card))"
-                    strokeWidth="2"
-                  >
-                    <title>{`${dataset.platform}: ${point.rating}\n${point.contestName}\n${point.date.toLocaleDateString()}`}</title>
-                  </circle>
-                </g>
-              ))}
-            </g>
-          ))}
-
-          {/* Axes */}
-          <line
-            x1={paddingLeft}
-            y1={paddingTop}
-            x2={paddingLeft}
-            y2={chartHeight - paddingBottom}
-            stroke="hsl(var(--foreground))"
-            strokeWidth="2"
-          />
-          <line
-            x1={paddingLeft}
-            y1={chartHeight - paddingBottom}
-            x2={chartWidth - paddingRight}
-            y2={chartHeight - paddingBottom}
-            stroke="hsl(var(--foreground))"
-            strokeWidth="2"
-          />
-
-          {/* Axis labels */}
-          <text
-            x={paddingLeft - 45}
-            y={chartHeight / 2}
-            textAnchor="middle"
-            fill="hsl(var(--foreground))"
-            fontSize="14"
-            fontWeight="600"
-            transform={`rotate(-90, ${paddingLeft - 45}, ${chartHeight / 2})`}
-          >
-            Rating
-          </text>
-          <text
-            x={chartWidth / 2}
-            y={chartHeight - 10}
-            textAnchor="middle"
-            fill="hsl(var(--foreground))"
-            fontSize="14"
-            fontWeight="600"
-          >
-            Contest Date
-          </text>
-        </svg>
-
-        {/* Legend */}
-        <div className="flex justify-center gap-8 mt-4 flex-wrap">
-          {datasets.map((dataset, idx) => (
-            <div 
-              key={`legend-${idx}`}
-              className="flex items-center gap-2"
-            >
-              <div 
-                className="w-5 h-1 rounded"
-                style={{ backgroundColor: dataset.color }}
-              />
-              <span className="text-sm font-medium capitalize">
-                {dataset.platform}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                ({dataset.data[dataset.data.length - 1]?.rating || 0})
-              </span>
-            </div>
-          ))}
-        </div>
+      <div ref={containerRef} className="w-full overflow-x-auto rounded-lg min-h-[300px] flex items-center justify-center">
+        {!hasAnimated && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Loading chart...</span>
+          </div>
+        )}
       </div>
     );
   };
@@ -985,8 +1032,8 @@ const Portfolio = () => {
     <div className="flex-1 lg:max-w-[40%]">
       <div className="flex flex-col gap-5">
         {/* Avatar and Name Row */}
-        <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
-          <Avatar className="h-28 w-28 sm:h-32 sm:w-32 md:h-36 md:w-36 rounded-xl ring-2 ring-primary/20 flex-shrink-0 shadow-sm">
+        <div className="flex flex-row items-start gap-4 sm:gap-6">
+          <Avatar className="h-24 w-24 sm:h-32 sm:w-32 md:h-36 md:w-36 rounded-xl ring-2 ring-primary/20 flex-shrink-0 shadow-sm">
             <AvatarImage
               src={userData.profilePic && userData.profilePic !== "/diverse-group-profile.png" ? userData.profilePic : undefined}
               alt={userData.username}
@@ -994,8 +1041,17 @@ const Portfolio = () => {
             />
             <AvatarFallback username={userData.username} className="rounded-xl" />
           </Avatar>
+          <div className="flex-1 min-w-0 py-1">
+            {/* Full Name */}
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-bold leading-tight text-foreground mb-1 break-words">
+              {userData.fullName || userData.username}
+            </h2>
 
-          <div className="flex-1 min-w-0">
+            {/* Username */}
+            <p className="text-sm sm:text-base text-muted-foreground font-medium mb-3 truncate">
+              @{userData.username}
+            </p>
+
             {/* Verification Badge */}
             <div className="mb-2">
               {userData.isVerified ? (
@@ -1008,16 +1064,6 @@ const Portfolio = () => {
                 </Badge>
               )}
             </div>
-
-            {/* Full Name */}
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-foreground mb-1">
-              {userData.fullName || userData.username}
-            </h2>
-
-            {/* Username */}
-            <p className="text-sm sm:text-base text-muted-foreground font-medium mb-3 truncate">
-              @{userData.username}
-            </p>
           </div>
         </div>
 
@@ -1065,11 +1111,17 @@ const Portfolio = () => {
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => navigator.clipboard.writeText(window.location.href)}
+            onClick={() => {
+              const url = `${window.location.origin}/portfolio/${userData.username}`;
+              navigator.clipboard.writeText(url);
+              setIsCopied(true);
+              setTimeout(() => setIsCopied(false), 2000);
+            }}
             className="ml-1"
             title="Copy profile link"
           >
-            <Share2 className="mr-1 h-4 w-4" /> Share profile
+            {isCopied ? <CheckCircle className="mr-1 h-4 w-4" /> : <Share2 className="mr-1 h-4 w-4" />} 
+            {isCopied ? "Copied!" : "Share profile"}
           </Button>
         </div>
       </div>
@@ -1329,7 +1381,8 @@ const Portfolio = () => {
                       <span>All-time rating history across platforms</span>
                     </div>
                   </div>
-                  <RatingChart datasets={ratingChartData.datasets} />
+                  {/* Replaced old SVG chart with Highcharts */}
+                  <HighchartsRatingChart datasets={ratingChartData.datasets} />
                 </div>
 
                 {/* Platform Ratings - 1/3 width */}
@@ -1467,7 +1520,6 @@ const Portfolio = () => {
           Last 10
         </span>
       </div>
-     
       <div className="space-y-2">
         {recent10Submissions.map((submission, index) => (
           <div

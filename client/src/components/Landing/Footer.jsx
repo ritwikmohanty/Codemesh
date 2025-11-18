@@ -39,11 +39,11 @@ const BrandingFooter = () => {
     >
       {/* Top signature bar (moved ABOVE the branding) */}
       <motion.div
-        className="pointer-events-auto absolute inset-x-0 top-0 z-50"
+        className="pointer-events-auto absolute inset-x-0 top-0 z-50 border-t border-border/60"
         variants={itemVariants}
         custom={1}
       >
-        <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-3 border-t border-border/60">
+        <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-s text-muted-foreground">
             <div className="flex items-center gap-2">
               <span>© {year} CodeMesh</span>

@@ -96,7 +96,7 @@ const Navbar = () => {
     const navClasses = `
         transition-transform transition-opacity duration-300 ease-out w-full z-50
         ${isScrolled 
-            ? 'fixed top-4 inset-x-0 mx-auto w-[calc(100%-2rem)] max-w-6xl rounded-full bg-card/95 backdrop-blur-xl shadow-lg border border-border px-4 py-1 animate-slide-down-fade opacity-100' 
+            ? 'md:fixed md:top-4 md:inset-x-0 md:mx-auto md:w-[calc(100%-2rem)] md:max-w-6xl md:rounded-full md:bg-card/95 md:backdrop-blur-xl md:shadow-lg md:border md:border-border md:px-4 md:py-1 md:animate-slide-down-fade md:opacity-100 fixed top-0 px-5 py-2 bg-background' 
             : 'static px-5 py-2'
         }
     `;
@@ -116,16 +116,16 @@ const Navbar = () => {
                         alt="CodeMesh"
                         className="h-7 w-auto object-contain rounded "
                     />
-                    <span className="font-bold text-lg text-foreground">CodeMesh</span>
+                    <span className={`font-bold text-lg ${isScrolled ? 'text-foreground' : 'text-white'}`}>CodeMesh</span>
                 </a>
 
                 {/* Desktop Navigation Links */}
                 <div className="hidden md:flex items-center space-x-2">
                     <ul className="flex items-center space-x-2">
-                        <li><a href="/" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Home</a></li>
-                        <li><a href="/portfolio" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Portfolio</a></li>
-                        <li><a href="/leaderboard" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Leaderboard</a></li>
-                        <li><a href="/calendar" className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:text-primary">Calendar</a></li>
+                        <li><a href="/" className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isScrolled ? 'hover:text-primary' : 'hover:text-gray-300 text-white'}`}>Home</a></li>
+                        <li><a href="/portfolio" className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isScrolled ? 'hover:text-primary' : 'hover:text-gray-300 text-white'}`}>Portfolio</a></li>
+                        <li><a href="/leaderboard" className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isScrolled ? 'hover:text-primary' : 'hover:text-gray-300 text-white'}`}>Leaderboard</a></li>
+                        <li><a href="/calendar" className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${isScrolled ? 'hover:text-primary' : 'hover:text-gray-300 text-white'}`}>Calendar</a></li>
                     </ul>
                 </div>
 
@@ -188,7 +188,7 @@ const Navbar = () => {
                 
                 {/* Mobile Menu Button */}
                 <div className="md:hidden">
-                    <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="inline-flex items-center justify-center p-2 rounded-md text-foreground hover:bg-muted focus:outline-none">
+                    <button onClick={() => setIsMenuOpen(!isMenuOpen)} className={`inline-flex items-center justify-center p-2 rounded-md transition-colors focus:outline-none ${isScrolled ? 'text-foreground hover:bg-muted' : 'text-white hover:bg-white/10'}`}>
                         <MenuIcon />
                     </button>
                 </div>
