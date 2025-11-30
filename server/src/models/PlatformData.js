@@ -53,6 +53,19 @@ const platformDataSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  // Verification fields - for proving account ownership
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  verificationCode: {
+    type: String,
+    default: null
+  },
+  verifiedAt: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

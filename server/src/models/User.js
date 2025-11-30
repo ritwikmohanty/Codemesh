@@ -70,6 +70,23 @@ const userSchema = new mongoose.Schema({
     of: String,
     default: {}
   },
+  // Linked platform accounts with verification status
+  linkedAccounts: [{
+    platform: {
+      type: String,
+      enum: ['codeforces', 'leetcode', 'codechef', 'hackerrank', 'atcoder', 'geeksforgeeks', 'code360', 'hackerearth']
+    },
+    handle: String,
+    isVerified: {
+      type: Boolean,
+      default: false
+    },
+    verifiedAt: Date,
+    linkedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   isEmailVerified: {
     type: Boolean,
     default: false

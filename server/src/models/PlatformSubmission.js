@@ -51,7 +51,8 @@ const platformSubmissionSchema = new mongoose.Schema({
 
 // Indexes for efficient queries
 platformSubmissionSchema.index({ user: 1, platform: 1 });
-platformSubmissionSchema.index({ platform: 1, platformSubmissionId: 1 }, { unique: true });
+// Changed: Include user in unique index to allow multiple users to sync same platform account
+platformSubmissionSchema.index({ user: 1, platform: 1, platformSubmissionId: 1 }, { unique: true });
 platformSubmissionSchema.index({ user: 1, 'quickAccess.timestamp': -1 });
 platformSubmissionSchema.index({ 'quickAccess.verdict': 1 });
 platformSubmissionSchema.index({ platform: 1, 'quickAccess.timestamp': -1 });
