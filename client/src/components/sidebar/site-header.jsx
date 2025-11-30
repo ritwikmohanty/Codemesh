@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
@@ -17,12 +18,21 @@ import SignUp from '../signup'
 import ThemeToggleButton from "@/components/ui/theme-toggle-button"
 
 export function SiteHeader() {
+  const navigate = useNavigate()
   const [isSignInDialogOpen, setIsSignInDialogOpen] = useState(false)
   const [isSignUpDialogOpen, setIsSignUpDialogOpen] = useState(false)
   const { isAuthenticated, user, logout } = useAuth()
 
   const handleLogout = () => {
     logout()
+  }
+
+  const handleProfileClick = () => {
+    navigate('/portfolio')
+  }
+
+  const handleSettingsClick = () => {
+    navigate('/settings')
   }
 
   return (
@@ -53,8 +63,8 @@ export function SiteHeader() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>Profile</DropdownMenuItem>
-                  <DropdownMenuItem>Settings</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleProfileClick}>Profile</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleSettingsClick}>Settings</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     Sign out

@@ -40,10 +40,10 @@ const LeaderboardFilters = ({
     <div className="flex flex-col sm:flex-row gap-4 items-center justify-between mb-6">
       <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
         {/* Tier Filter */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Filter className="w-4 h-4 text-muted-foreground" />
           <Select value={selectedTier || 'All Tiers'} onValueChange={onTierChange}>
-            <SelectTrigger className="w-[180px] bg-card border-border">
+            <SelectTrigger className="w-full sm:w-[180px] bg-card border-border">
               <SelectValue placeholder="Select tier" />
             </SelectTrigger>
             <SelectContent>

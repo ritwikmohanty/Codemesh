@@ -268,11 +268,11 @@ const LeaderboardPage = () => {
 
                     {/* Tabs */}
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                        <TabsList className="grid w-full max-w-3xl mx-auto grid-cols-3">
-                            <TabsTrigger value="codemesh">CodeMesh Master Rating</TabsTrigger>
-                            <TabsTrigger value="codeforces">Codeforces Rating</TabsTrigger>
-                            <TabsTrigger value="leetcode">LeetCode Rating</TabsTrigger>
-                        </TabsList>
+                    <TabsList className="flex w-full overflow-x-auto justify-start md:grid md:grid-cols-3 max-w-3xl mx-auto h-auto p-1 gap-2 [&::-webkit-scrollbar]:hidden">
+                        <TabsTrigger value="codemesh" className="whitespace-nowrap md:whitespace-normal flex-shrink-0 px-4 py-2 text-xs md:text-sm">CodeMesh Master Rating</TabsTrigger>
+                        <TabsTrigger value="codeforces" className="whitespace-nowrap md:whitespace-normal flex-shrink-0 px-4 py-2 text-xs md:text-sm">Codeforces Rating</TabsTrigger>
+                        <TabsTrigger value="leetcode" className="whitespace-nowrap md:whitespace-normal flex-shrink-0 px-4 py-2 text-xs md:text-sm">LeetCode Rating</TabsTrigger>
+                    </TabsList>
 
                         {/* CodeMesh Master Rating Tab */}
                         <TabsContent value="codemesh" className="space-y-6">

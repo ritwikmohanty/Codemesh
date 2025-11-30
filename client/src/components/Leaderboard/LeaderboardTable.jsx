@@ -92,7 +92,8 @@ const LeaderboardTable = ({ data, loading, currentPage, onPageChange, totalPages
   return (
     <div className="space-y-4 ">
       <div className="rounded-lg border border-border overflow-hidden">
-        <Table>
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow className="bg-card hover:bg-card">
               <TableHead className="w-[80px] text-center">Rank</TableHead>
@@ -186,6 +187,7 @@ const LeaderboardTable = ({ data, loading, currentPage, onPageChange, totalPages
             ))}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Pagination */}

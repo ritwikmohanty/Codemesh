@@ -40,13 +40,13 @@ const getPodiumPalette = (position) => {
 /**
  * SVG podium base with per-position palette and unique gradient ids.
  */
-const PodiumBase = ({ height = 200, position }) => {
+const PodiumBase = ({ className, position }) => {
   const palette = getPodiumPalette(position);
   const idSuffix = `p${position}`;
 return (
     <div
-        className="w-full rounded-t-xl relative overflow-hidden z-0"
-        style={{ height: `${height}px`, minWidth: '200px' }}
+        className={`w-full rounded-t-xl relative overflow-hidden z-0 ${className}`}
+        style={{ minWidth: '80px' }}
     >
         <svg
             viewBox="0 0 353 420"
@@ -73,7 +73,7 @@ return (
 
         {/* Position Number overlay */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-6xl font-black text-white">#{position}</span>
+            <span className="text-3xl md:text-6xl font-black text-white">#{position}</span>
         </div>
     </div>
 );
@@ -130,16 +130,16 @@ const Podium = ({ topThree = [], platform = null, revealHeight = 160 }) => {
     return 'Master Rating';
   };
 
-  const PodiumCard = ({ user, position, height }) => {
+  const PodiumCard = ({ user, position, heightClass }) => {
     if (!user) return null;
 
     return (
       <div
-        className="flex flex-col items-center gap-4 transition-transform hover:scale-105 duration-300"
-        style={{ paddingBottom: position === 1 ? '0' : '40px' }}
+        className="flex flex-col items-center gap-2 md:gap-4 transition-transform hover:scale-105 duration-300 flex-1 min-w-0"
+        style={{ paddingBottom: position === 1 ? '0' : '0' }} // Removed padding bottom to align bases
       >
         {/* User Info */}
-        <div className="flex flex-col items-center gap-3 relative z-10">
+        <div className="flex flex-col items-center gap-1 md:gap-3 relative z-10 w-full">
           {/* Avatar with glow */}
           <div className="relative">
             {/* Glow effect */}
@@ -149,7 +149,7 @@ const Podium = ({ topThree = [], platform = null, revealHeight = 160 }) => {
 
             {/* Avatar (square) */}
             <Avatar
-              className={`relative z-10 ${position === 1 ? 'w-32 h-32' : 'w-24 h-24'} border-4 ${
+              className={`relative z-10 ${position === 1 ? 'w-20 h-20 md:w-32 md:h-32' : 'w-14 h-14 md:w-24 md:h-24'} border-2 md:border-4 ${
                 position === 1 ? 'border-yellow-500' : position === 2 ? 'border-zinc-400' : 'border-amber-700'
               } rounded-xl overflow-hidden`}
             >
@@ -158,82 +158,75 @@ const Podium = ({ topThree = [], platform = null, revealHeight = 160 }) => {
                 alt={user.user?.name}
                 className="object-cover"
               />
-              <AvatarFallback username={user.user?.username} className="text-2xl font-bold rounded-xl" />
+              <AvatarFallback username={user.user?.username} className="text-lg md:text-2xl font-bold rounded-xl" />
             </Avatar>
 
             {/* Trophy Icon Badge (above avatar) */}
             <div
-              className={`absolute ${position === 1 ? '-top-2 -right-2' : '-top-1 -right-1'} bg-background rounded-full p-2 shadow-lg border-2 ${
+              className={`absolute ${position === 1 ? '-top-2 -right-2' : '-top-1 -right-1'} bg-background rounded-full p-1 md:p-2 shadow-lg border-2 ${
                 position === 1 ? 'border-yellow-500' : position === 2 ? 'border-zinc-400' : 'border-amber-700'
-              } z-20`}
+              } z-20 scale-75 md:scale-100 origin-center`}
             >
               {getTrophyIcon(position)}
             </div>
           </div>
 
           {/* User Name */}
-          <div className="text-center">
-            <h3 className={`font-bold text-foreground ${position === 1 ? 'text-2xl' : 'text-xl'}`}>
+          <div className="text-center w-full px-1">
+            <h3 className={`font-bold text-foreground truncate ${position === 1 ? 'text-sm md:text-2xl' : 'text-xs md:text-xl'}`}>
               {user.user?.name || user.user?.username}
             </h3>
-            <p className="text-sm text-muted-foreground">@{user.user?.username}</p>
+            <p className="text-[10px] md:text-sm text-muted-foreground truncate">@{user.user?.username}</p>
           </div>
 
           {/* Tier Badge */}
-          <Badge variant="outline" className={`${getTierColor(user.tier)} font-semibold`}>
+          <Badge variant="outline" className={`${getTierColor(user.tier)} font-semibold text-[10px] md:text-xs px-1 md:px-2 py-0 md:py-0.5 h-5 md:h-auto`}>
             {user.tier}
           </Badge>
 
           {/* Master Rating */}
-          <div className="flex flex-col items-center gap-1 bg-card/50 backdrop-blur-sm px-6 py-3 rounded-lg border border-border">
+          <div className="flex flex-col items-center gap-0 md:gap-1 bg-card/50 backdrop-blur-sm px-2 md:px-6 py-1 md:py-3 rounded-lg border border-border w-full max-w-[90%] md:max-w-none">
             <span
               className={`font-black bg-gradient-to-r ${getTrophyColor(position)} bg-clip-text text-transparent ${
-                position === 1 ? 'text-4xl' : 'text-3xl'
+                position === 1 ? 'text-xl md:text-4xl' : 'text-lg md:text-3xl'
               }`}
             >
               {Math.round(getRating(user))}
             </span>
-            <span className="text-xs text-muted-foreground uppercase tracking-wider">{getRatingLabel()}</span>
+            <span className="text-[8px] md:text-xs text-muted-foreground uppercase tracking-wider text-center leading-tight">{getRatingLabel()}</span>
           </div>
 
           {/* Stats */}
-          <div className="flex gap-6 text-sm">
+          <div className="flex gap-2 md:gap-6 text-[10px] md:text-sm justify-center w-full">
             <div className="flex flex-col items-center">
               <span className="font-bold text-foreground">{user.ratingComponents?.totalContests || 0}</span>
-              <span className="text-xs text-muted-foreground">Contests</span>
+              <span className="text-[8px] md:text-xs text-muted-foreground scale-90 md:scale-100">Contests</span>
             </div>
             <div className="flex flex-col items-center">
               <span className="font-bold text-foreground">{user.ratingComponents?.totalSolved || 0}</span>
-              <span className="text-xs text-muted-foreground">Solved</span>
+              <span className="text-[8px] md:text-xs text-muted-foreground scale-90 md:scale-100">Solved</span>
             </div>
           </div>
         </div>
 
         {/* Podium Base (SVG with gold/silver/bronze) */}
-        <PodiumBase height={height} position={position} />
+        <PodiumBase className={heightClass} position={position} />
       </div>
     );
   };
 
   return (
-    <div className="w-full pt-8 relative">
-      {/* Desktop View */}
-      <div className="hidden md:flex items-end justify-center gap-8 max-w-6xl mx-auto px-4">
+    <div className="w-full md:w-[80%] pt-8 relative mx-auto pb-6">
+      {/* Responsive View */}
+      <div className="flex items-end justify-center gap-2 md:gap-8 max-w-6xl mx-auto px-2 md:px-4 w-full">
         {/* Second Place */}
-        <PodiumCard user={topThree[1]} position={2} height={200} />
+        <PodiumCard user={topThree[1]} position={2} heightClass="h-[140px] md:h-[200px]" />
 
         {/* First Place */}
-        <PodiumCard user={topThree[0]} position={1} height={260} />
+        <PodiumCard user={topThree[0]} position={1} heightClass="h-[180px] md:h-[260px]" />
 
         {/* Third Place */}
-        <PodiumCard user={topThree[2]} position={3} height={160} />
-      </div>
-
-      {/* Mobile View */}
-      <div className="md:hidden flex flex-col gap-6 px-4">
-        <PodiumCard user={topThree[0]} position={1} height={180} />
-        <PodiumCard user={topThree[1]} position={2} height={140} />
-        <PodiumCard user={topThree[2]} position={3} height={120} />
+        <PodiumCard user={topThree[2]} position={3} heightClass="h-[120px] md:h-[160px]" />
       </div>
 
       {/* Single bottom reveal overlay for all podiums */}
