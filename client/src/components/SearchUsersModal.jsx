@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Search, X } from 'lucide-react';
 import axios from 'axios';
@@ -109,11 +110,11 @@ const SearchUsersModal = ({ isOpen, onClose }) => {
 
   if (!isOpen && !isClosing) return null;
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-50 backdrop-blur-sm bg-black/50 transition-opacity duration-200 ${
+        className={`fixed inset-0 z-[100] backdrop-blur-sm bg-black/50 transition-opacity duration-200 ${
           isClosing ? 'opacity-0' : 'opacity-100'
         }`}
         onClick={handleClose}
@@ -124,7 +125,7 @@ const SearchUsersModal = ({ isOpen, onClose }) => {
       <div
         role="dialog"
         aria-labelledby="search-dialog-title"
-        className={`fixed top-4 md:top-[calc(50%-250px)] z-50 w-[calc(100%-2em)] left-0 right-0 mx-auto max-w-screen-sm rounded-xl border bg-popover text-popover-foreground shadow-2xl shadow-black/50 overflow-hidden transition-all duration-300 ${
+        className={`fixed top-4 md:top-[calc(50%-250px)] z-[100] w-[calc(100%-2em)] left-0 right-0 mx-auto max-w-screen-sm rounded-xl border bg-popover text-popover-foreground shadow-2xl shadow-black/50 overflow-hidden transition-all duration-300 ${
           isClosing 
             ? 'opacity-0 scale-95' 
             : 'opacity-100 scale-100 animate-bounce-in'
@@ -160,11 +161,11 @@ const SearchUsersModal = ({ isOpen, onClose }) => {
         <div
           className={`overflow-hidden transition-all duration-200 ${
             searchQuery.trim() && (searchResults.length > 0 || isLoading || error)
-              ? 'max-h-[460px]'
+              ? 'max-h-[60vh] md:max-h-[460px]'
               : 'max-h-0'
           }`}
         >
-          <div className="w-full flex-col overflow-y-auto max-h-[460px] p-1">
+          <div className="w-full flex-col overflow-y-auto max-h-[60vh] md:max-h-[460px] p-1">
             {isLoading && (
               <div className="p-4 text-center text-muted-foreground">
                 <div className="flex items-center justify-center gap-2">
@@ -253,7 +254,8 @@ const SearchUsersModal = ({ isOpen, onClose }) => {
           </div>
         )}
       </div>
-    </>
+    </>,
+    document.body
   );
 };
 
