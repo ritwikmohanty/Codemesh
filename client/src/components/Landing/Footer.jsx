@@ -49,14 +49,14 @@ const BrandingFooter = () => {
         viewport={{ once: true, amount: 0.2 }}
       >
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 ">
+        <div className="flex flex-col max-w-6xl mx-auto md:flex-row justify-between gap-10 lg:gap-12">
           {/* Brand Column */}
-          <motion.div className="md:col-span-5 space-y-6" variants={itemVariants}>
+          <motion.div className="flex-1 max-w-md space-y-6" variants={itemVariants}>
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
                 {isMounted && (
-                  <img 
-                    src={theme === 'dark' ? LogoDark : LogoLight} 
+                  <img
+                    src={theme === 'dark' ? LogoDark : LogoLight}
                     alt="CodeMesh Logo"
                     className="h-6 w-6 object-contain"
                   />
@@ -64,15 +64,15 @@ const BrandingFooter = () => {
               </div>
               <span className="text-xl font-bold tracking-tight text-foreground">CodeMesh</span>
             </div>
-            <p className="text-muted-foreground max-w-md leading-relaxed text-sm md:text-base">
+            <p className="text-muted-foreground leading-relaxed text-sm md:text-base">
               The ultimate platform for competitive programmers. Track your progress, compete with friends, and climb the global leaderboards.
             </p>
-            
+
             {/* Newsletter */}
             <div className="flex gap-2 max-w-sm mt-4 w-full">
-              <Input 
-                placeholder="Enter your email" 
-                className="bg-background h-10" 
+              <Input
+                placeholder="Enter your email"
+                className="bg-background h-10"
               />
               <Button size="icon" className="shrink-0">
                 <ArrowRight className="h-4 w-4" />
@@ -81,7 +81,7 @@ const BrandingFooter = () => {
           </motion.div>
 
           {/* Links Columns - Responsive Grid */}
-          <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-8">
+          <div className="flex-1 max-w-2xl md:ml-auto grid grid-cols-2 sm:grid-cols-3 gap-8 text-right">
             <motion.div variants={itemVariants}>
               <h3 className="font-semibold mb-4 text-foreground">Platform</h3>
               <ul className="space-y-3 text-sm text-muted-foreground">
@@ -115,11 +115,16 @@ const BrandingFooter = () => {
       </motion.div>
 
       {/* Massive Branding */}
-      <div className="relative w-full flex justify-center overflow-hidden pb-2 -mt-2 mb-4">
-        <div className="absolute top-12 left-0 right-0 z-40 w-full h-[200px] bg-gradient-to-b from-background via-background/80 to-transparent pointer-events-none" />
-        
+      {/* Massive Branding */}
+      <div className="relative w-full max-w-6xl mx-auto flex justify-center overflow-hidden -mt-2 mb-4 select-none pointer-events-none">
         <motion.h1
-          className="text-muted-foreground/10 text-[clamp(4rem,18vw,16rem)] font-black tracking-[-0.03em] select-none normal-case leading-none mt-8 -mb-10 text-center"
+          className="font-black tracking-tighter text-center leading-none"
+          style={{
+            fontSize: 'clamp(3.5rem, 16vw, 14rem)',
+            backgroundImage: 'linear-gradient(to bottom, hsl(var(--muted-foreground)) 0%, transparent 90%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+          }}
           variants={itemVariants}
           custom={1}
         >
@@ -129,7 +134,7 @@ const BrandingFooter = () => {
 
       {/* Bottom Bar - Below Branding with Separator */}
       <div className="border-t border-border bg-background/50 backdrop-blur-sm relative z-50">
-        <div className="container mx-auto px-6 py-6">
+        <div className="container max-w-6xl mx-auto py-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
             <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 text-center">
               <span>© {year} CodeMesh</span>
@@ -138,7 +143,7 @@ const BrandingFooter = () => {
               <span className="hidden sm:inline text-border">•</span>
               <span className="flex items-center gap-1">Built in India <span className="grayscale hover:grayscale-0 transition-all">🇮🇳</span></span>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
               <div className="flex gap-4">
                 <a href="#" className="hover:text-foreground transition-colors"><Github className="w-4 h-4" /></a>
