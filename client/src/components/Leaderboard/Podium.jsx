@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import { Trophy, Award, Medal } from 'lucide-react';
@@ -80,12 +81,15 @@ return (
 };
 
 const Podium = ({ topThree = [], platform = null, revealHeight = 160 }) => {
+  const navigate = useNavigate();
+
+  const handleCardClick = (username) => {
+    navigate(`/portfolio/${username}`);
+  };
+
+  // If we don't have exactly 3 users, don't show podium
   if (!topThree || topThree.length < 3) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">
-        <p className="text-lg">Loading top champions...</p>
-      </div>
-    );
+    return null;
   }
 
   const getTrophyColor = (position) => {
@@ -135,8 +139,9 @@ const Podium = ({ topThree = [], platform = null, revealHeight = 160 }) => {
 
     return (
       <div
-        className="flex flex-col items-center gap-2 md:gap-4 transition-transform hover:scale-105 duration-300 flex-1 min-w-0"
+        className="flex flex-col items-center gap-2 md:gap-4 transition-transform hover:scale-105 duration-300 flex-1 min-w-0 cursor-pointer"
         style={{ paddingBottom: position === 1 ? '0' : '0' }} // Removed padding bottom to align bases
+        onClick={() => handleCardClick(user.user?.username)}
       >
         {/* User Info */}
         <div className="flex flex-col items-center gap-1 md:gap-3 relative z-10 w-full">

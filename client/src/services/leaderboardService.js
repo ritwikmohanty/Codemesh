@@ -22,7 +22,7 @@ const apiClient = axios.create({
  * @returns {Promise<Object>} Leaderboard data
  */
 export const getLeaderboard = async (options = {}) => {
-  const { page = 1, limit = 50, tier = null, search = null } = options;
+  const { page = 1, limit = 50, tier = null, college = null, country = null, graduationYear = null } = options;
   
   const params = new URLSearchParams({
     page: page.toString(),
@@ -30,7 +30,9 @@ export const getLeaderboard = async (options = {}) => {
   });
   
   if (tier && tier !== 'All Tiers') params.append('tier', tier);
-  if (search) params.append('search', search);
+  if (college) params.append('college', college);
+  if (country) params.append('country', country);
+  if (graduationYear) params.append('graduationYear', graduationYear.toString());
   
   const response = await apiClient.get(`/leaderboard?${params.toString()}`);
   return response.data;
@@ -39,10 +41,22 @@ export const getLeaderboard = async (options = {}) => {
 /**
  * Get top N users from leaderboard
  * @param {number} count - Number of top users to fetch
+ * @param {Object} filters - Optional filters (tier, college, country, graduationYear)
  * @returns {Promise<Object>} Top users data
  */
-export const getTopUsers = async (count = 10) => {
-  const response = await apiClient.get(`/leaderboard/top/${count}`);
+export const getTopUsers = async (count = 10, filters = {}) => {
+  const { tier = null, college = null, country = null, graduationYear = null } = filters;
+  
+  const params = new URLSearchParams();
+  if (tier && tier !== 'All Tiers') params.append('tier', tier);
+  if (college) params.append('college', college);
+  if (country) params.append('country', country);
+  if (graduationYear) params.append('graduationYear', graduationYear.toString());
+  
+  const queryString = params.toString();
+  const url = `/leaderboard/top/${count}${queryString ? `?${queryString}` : ''}`;
+  
+  const response = await apiClient.get(url);
   return response.data;
 };
 
@@ -129,12 +143,17 @@ export const searchLeaderboard = async (query, options = {}) => {
  * @returns {Promise<Object>} Platform leaderboard data
  */
 export const getPlatformLeaderboard = async (platform, options = {}) => {
-  const { page = 1, limit = 50 } = options;
+  const { page = 1, limit = 50, tier = null, college = null, country = null, graduationYear = null } = options;
   
   const params = new URLSearchParams({
     page: page.toString(),
     limit: limit.toString(),
   });
+  
+  if (tier && tier !== 'All Tiers') params.append('tier', tier);
+  if (college) params.append('college', college);
+  if (country && country !== 'All Countries') params.append('country', country);
+  if (graduationYear && graduationYear !== 'All Years') params.append('graduationYear', graduationYear.toString());
   
   const response = await apiClient.get(`/leaderboard/platform/${platform}?${params.toString()}`);
   return response.data;
@@ -144,10 +163,22 @@ export const getPlatformLeaderboard = async (platform, options = {}) => {
  * Get top N users for a specific platform
  * @param {string} platform - Platform name ('codeforces' or 'leetcode')
  * @param {number} count - Number of top users to fetch
+ * @param {Object} filters - Optional filters
  * @returns {Promise<Object>} Top users for platform
  */
-export const getTopUsersByPlatform = async (platform, count = 10) => {
-  const response = await apiClient.get(`/leaderboard/platform/${platform}/top/${count}`);
+export const getTopUsersByPlatform = async (platform, count = 10, filters = {}) => {
+  const { tier = null, college = null, country = null, graduationYear = null } = filters;
+  
+  const params = new URLSearchParams();
+  if (tier && tier !== 'All Tiers') params.append('tier', tier);
+  if (college) params.append('college', college);
+  if (country && country !== 'All Countries') params.append('country', country);
+  if (graduationYear && graduationYear !== 'All Years') params.append('graduationYear', graduationYear.toString());
+  
+  const queryString = params.toString();
+  const url = `/leaderboard/platform/${platform}/top/${count}${queryString ? `?${queryString}` : ''}`;
+  
+  const response = await apiClient.get(url);
   return response.data;
 };
 

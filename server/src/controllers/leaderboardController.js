@@ -18,14 +18,18 @@ export async function getGlobalLeaderboard(req, res) {
       page = 1,
       limit = 50,
       tier = null,
-      search = null
+      college = null,
+      country = null,
+      graduationYear = null
     } = req.query;
     
     const options = {
       page: parseInt(page),
       limit: Math.min(parseInt(limit), 100), // Max 100 per page
       tier,
-      search,
+      college,
+      country,
+      graduationYear: graduationYear ? parseInt(graduationYear) : null,
       sortBy: 'masterRating',
       sortOrder: 'desc'
     };
@@ -51,10 +55,20 @@ export async function getGlobalLeaderboard(req, res) {
 export async function getTopUsers(req, res) {
   try {
     const count = Math.min(parseInt(req.params.count) || 10, 100);
+    const {
+      tier = null,
+      college = null,
+      country = null,
+      graduationYear = null
+    } = req.query;
     
     const result = await leaderboardService.getLeaderboard({
       page: 1,
       limit: count,
+      tier,
+      college,
+      country,
+      graduationYear: graduationYear ? parseInt(graduationYear) : null,
       sortBy: 'masterRating',
       sortOrder: 'desc'
     });
@@ -350,7 +364,14 @@ export async function searchLeaderboard(req, res) {
 export async function getPlatformLeaderboard(req, res) {
   try {
     const { platform } = req.params;
-    const { page = 1, limit = 50 } = req.query;
+    const { 
+      page = 1, 
+      limit = 50,
+      tier = null,
+      college = null,
+      country = null,
+      graduationYear = null
+    } = req.query;
     
     // Validate platform
     const validPlatforms = ['codeforces', 'leetcode'];
@@ -364,7 +385,11 @@ export async function getPlatformLeaderboard(req, res) {
     const result = await leaderboardService.getPlatformLeaderboard({
       platform: platform.toLowerCase(),
       page: parseInt(page),
-      limit: Math.min(parseInt(limit), 100)
+      limit: Math.min(parseInt(limit), 100),
+      tier,
+      college,
+      country,
+      graduationYear: graduationYear ? parseInt(graduationYear) : null
     });
     
     res.json(result);
@@ -386,6 +411,12 @@ export async function getPlatformLeaderboard(req, res) {
 export async function getTopUsersByPlatform(req, res) {
   try {
     const { platform, count } = req.params;
+    const {
+      tier = null,
+      college = null,
+      country = null,
+      graduationYear = null
+    } = req.query;
     
     // Validate platform
     const validPlatforms = ['codeforces', 'leetcode'];
@@ -400,7 +431,11 @@ export async function getTopUsersByPlatform(req, res) {
     
     const result = await leaderboardService.getTopUsersByPlatform({
       platform: platform.toLowerCase(),
-      count: topCount
+      count: topCount,
+      tier,
+      college,
+      country,
+      graduationYear: graduationYear ? parseInt(graduationYear) : null
     });
     
     res.json(result);

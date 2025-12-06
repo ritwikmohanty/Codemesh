@@ -6,37 +6,65 @@ import LeaderboardTable from '../components/Leaderboard/LeaderboardTable';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { Trophy, TrendingUp, Users, Target } from 'lucide-react';
+import { Trophy, TrendingUp, Users, Target, Filter } from 'lucide-react';
 import * as leaderboardService from '../services/leaderboardService';
 
 const LeaderboardPage = () => {
     // State for CodeMesh Master Rating
     const [topThree, setTopThree] = useState([]);
     const [leaderboardData, setLeaderboardData] = useState([]);
+    const [totalFilteredUsers, setTotalFilteredUsers] = useState(0);
     const [stats, setStats] = useState(null);
     
     // State for Codeforces
     const [cfTopThree, setCfTopThree] = useState([]);
     const [cfLeaderboardData, setCfLeaderboardData] = useState([]);
+    const [cfTotalFilteredUsers, setCfTotalFilteredUsers] = useState(0);
     
     // State for LeetCode
     const [lcTopThree, setLcTopThree] = useState([]);
     const [lcLeaderboardData, setLcLeaderboardData] = useState([]);
+    const [lcTotalFilteredUsers, setLcTotalFilteredUsers] = useState(0);
     
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     
     // Filters
     const [selectedTier, setSelectedTier] = useState('All Tiers');
-    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedCountry, setSelectedCountry] = useState('All Countries');
+    const [selectedCollege, setSelectedCollege] = useState('');
+    const [selectedGraduationYear, setSelectedGraduationYear] = useState('All Years');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [activeTab, setActiveTab] = useState('codemesh');
 
-    // Fetch top 3 users for CodeMesh Master Rating
+    // Check if any filter is active
+    const hasActiveFilters = selectedTier !== 'All Tiers' || 
+                             selectedCountry !== 'All Countries' || 
+                             selectedCollege !== '' || 
+                             selectedGraduationYear !== 'All Years';
+
+    // Count active filters
+    const activeFilterCount = [
+        selectedTier !== 'All Tiers',
+        selectedCountry !== 'All Countries',
+        selectedCollege !== '',
+        selectedGraduationYear !== 'All Years'
+    ].filter(Boolean).length;
+
+    // Get current filter options
+    const getFilterOptions = () => ({
+        tier: selectedTier === 'All Tiers' ? null : selectedTier,
+        country: selectedCountry === 'All Countries' ? null : selectedCountry,
+        college: selectedCollege || null,
+        graduationYear: selectedGraduationYear === 'All Years' ? null : parseInt(selectedGraduationYear)
+    });
+
+    // Fetch top 3 users for CodeMesh Master Rating (with filters)
     const fetchTopUsers = async () => {
         try {
-            const response = await leaderboardService.getTopUsers(3);
+            const filters = getFilterOptions();
+            const response = await leaderboardService.getTopUsers(3, filters);
             if (response.success && response.data) {
                 setTopThree(response.data);
             }
@@ -45,27 +73,33 @@ const LeaderboardPage = () => {
         }
     };
 
-    // Fetch leaderboard data for CodeMesh (starting from rank 4)
+    // Fetch leaderboard data for CodeMesh
     const fetchLeaderboard = async () => {
         setLoading(true);
         setError(null);
 
         try {
-            const tier = selectedTier === 'All Tiers' ? null : selectedTier;
-            const search = searchQuery.trim() || null;
+            const filters = getFilterOptions();
 
             const response = await leaderboardService.getLeaderboard({
                 page: currentPage,
                 limit: 50,
-                tier,
-                search
+                ...filters
             });
 
             if (response.success) {
-                // Filter out top 3 from the table data
                 const allData = response.data || [];
-                const dataFromRank4 = allData.filter(user => user.currentRank > 3);
-                setLeaderboardData(dataFromRank4);
+                const totalUsers = response.pagination?.totalEntries || allData.length;
+                setTotalFilteredUsers(totalUsers);
+                
+                // If more than 3 users, filter out top 3 from table (they appear in podium)
+                // If 3 or fewer, show all in table
+                if (totalUsers > 3) {
+                    const dataFromRank4 = allData.filter(user => user.currentRank > 3);
+                    setLeaderboardData(dataFromRank4);
+                } else {
+                    setLeaderboardData(allData);
+                }
                 setTotalPages(response.pagination?.totalPages || 1);
             }
         } catch (err) {
@@ -76,29 +110,39 @@ const LeaderboardPage = () => {
         }
     };
 
-    // TODO: Fetch Codeforces leaderboard
+    // Fetch Codeforces leaderboard
     const fetchCodeforcesLeaderboard = async () => {
         setLoading(true);
         setError(null);
         
         try {
+            const filters = getFilterOptions();
+            
             // Fetch top 3
-            const topResponse = await leaderboardService.getTopUsersByPlatform('codeforces', 3);
+            const topResponse = await leaderboardService.getTopUsersByPlatform('codeforces', 3, filters);
             if (topResponse.success && topResponse.data) {
                 setCfTopThree(topResponse.data);
             }
             
-            // Fetch full leaderboard (starting from rank 4)
+            // Fetch full leaderboard
             const response = await leaderboardService.getPlatformLeaderboard('codeforces', {
                 page: currentPage,
-                limit: 50
+                limit: 50,
+                ...filters
             });
             
             if (response.success) {
-                // Filter out top 3 from the table data
                 const allData = response.data || [];
-                const dataFromRank4 = allData.filter(user => user.platformRank > 3);
-                setCfLeaderboardData(dataFromRank4);
+                const totalUsers = response.pagination?.totalEntries || allData.length;
+                setCfTotalFilteredUsers(totalUsers);
+                
+                // If more than 3 users, filter out top 3 from table
+                if (totalUsers > 3) {
+                    const dataFromRank4 = allData.filter(user => user.platformRank > 3);
+                    setCfLeaderboardData(dataFromRank4);
+                } else {
+                    setCfLeaderboardData(allData);
+                }
                 setTotalPages(response.pagination?.totalPages || 1);
             }
         } catch (err) {
@@ -109,29 +153,39 @@ const LeaderboardPage = () => {
         }
     };
 
-    // TODO: Fetch LeetCode leaderboard
+    // Fetch LeetCode leaderboard
     const fetchLeetCodeLeaderboard = async () => {
         setLoading(true);
         setError(null);
         
         try {
+            const filters = getFilterOptions();
+            
             // Fetch top 3
-            const topResponse = await leaderboardService.getTopUsersByPlatform('leetcode', 3);
+            const topResponse = await leaderboardService.getTopUsersByPlatform('leetcode', 3, filters);
             if (topResponse.success && topResponse.data) {
                 setLcTopThree(topResponse.data);
             }
             
-            // Fetch full leaderboard (starting from rank 4)
+            // Fetch full leaderboard
             const response = await leaderboardService.getPlatformLeaderboard('leetcode', {
                 page: currentPage,
-                limit: 50
+                limit: 50,
+                ...filters
             });
             
             if (response.success) {
-                // Filter out top 3 from the table data
                 const allData = response.data || [];
-                const dataFromRank4 = allData.filter(user => user.platformRank > 3);
-                setLcLeaderboardData(dataFromRank4);
+                const totalUsers = response.pagination?.totalEntries || allData.length;
+                setLcTotalFilteredUsers(totalUsers);
+                
+                // If more than 3 users, filter out top 3 from table
+                if (totalUsers > 3) {
+                    const dataFromRank4 = allData.filter(user => user.platformRank > 3);
+                    setLcLeaderboardData(dataFromRank4);
+                } else {
+                    setLcLeaderboardData(allData);
+                }
                 setTotalPages(response.pagination?.totalPages || 1);
             }
         } catch (err) {
@@ -156,7 +210,6 @@ const LeaderboardPage = () => {
 
     // Initial load
     useEffect(() => {
-        fetchTopUsers();
         fetchStats();
         fetchCodeforcesLeaderboard();
         fetchLeetCodeLeaderboard();
@@ -165,27 +218,40 @@ const LeaderboardPage = () => {
     // Fetch leaderboard when filters change
     useEffect(() => {
         if (activeTab === 'codemesh') {
+            fetchTopUsers();
             fetchLeaderboard();
         } else if (activeTab === 'codeforces') {
             fetchCodeforcesLeaderboard();
         } else if (activeTab === 'leetcode') {
             fetchLeetCodeLeaderboard();
         }
-    }, [currentPage, selectedTier, searchQuery, activeTab]);
+    }, [currentPage, selectedTier, selectedCountry, selectedCollege, selectedGraduationYear, activeTab]);
 
     const handleTierChange = (tier) => {
         setSelectedTier(tier);
         setCurrentPage(1);
     };
 
-    const handleSearch = (query) => {
-        setSearchQuery(query);
+    const handleCountryChange = (country) => {
+        setSelectedCountry(country);
+        setCurrentPage(1);
+    };
+
+    const handleCollegeChange = (college) => {
+        setSelectedCollege(college);
+        setCurrentPage(1);
+    };
+
+    const handleGraduationYearChange = (year) => {
+        setSelectedGraduationYear(year);
         setCurrentPage(1);
     };
 
     const handleReset = () => {
         setSelectedTier('All Tiers');
-        setSearchQuery('');
+        setSelectedCountry('All Countries');
+        setSelectedCollege('');
+        setSelectedGraduationYear('All Years');
         setCurrentPage(1);
     };
 
@@ -199,16 +265,26 @@ const LeaderboardPage = () => {
                   <AppSidebar variant="inset">
             
             {/* Main Content */}
-            <div className="max-w-5xl mx-auto w-full">
-                <div className="container mx-auto px-4 py-8 space-y-8">
+            <div className="max-w-6xl mx-auto w-full">
+                <div className="container mx-auto px-4 py-6 space-y-6">
                     
                     {/* Header */}
-                    <div className="mb-8">
-                      <div>
-                        <h1 className="text-3xl font-bold mb-2">Leaderboard</h1>
-                        <p className="text-muted-foreground">
-                          Compete with the best coders across multiple platforms
-                        </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h1 className="text-3xl font-bold mb-2">Leaderboard</h1>
+                          <p className="text-muted-foreground">
+                            Compete with the best coders across multiple platforms
+                          </p>
+                        </div>
+                        {hasActiveFilters && (
+                          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                            <Filter className="w-4 h-4 text-primary" />
+                            <span className="text-sm font-medium text-primary">
+                              {activeFilterCount} {activeFilterCount === 1 ? 'Filter' : 'Filters'} Active
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -268,47 +344,77 @@ const LeaderboardPage = () => {
 
                     {/* Tabs */}
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="flex w-full overflow-x-auto justify-start md:grid md:grid-cols-3 max-w-3xl mx-auto h-auto p-1 gap-2 [&::-webkit-scrollbar]:hidden">
-                        <TabsTrigger value="codemesh" className="whitespace-nowrap md:whitespace-normal flex-shrink-0 px-4 py-2 text-xs md:text-sm">CodeMesh Master Rating</TabsTrigger>
-                        <TabsTrigger value="codeforces" className="whitespace-nowrap md:whitespace-normal flex-shrink-0 px-4 py-2 text-xs md:text-sm">Codeforces Rating</TabsTrigger>
-                        <TabsTrigger value="leetcode" className="whitespace-nowrap md:whitespace-normal flex-shrink-0 px-4 py-2 text-xs md:text-sm">LeetCode Rating</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-3 h-auto p-1.5 gap-1.5 bg-muted/50 rounded-lg">
+                        <TabsTrigger 
+                          value="codemesh" 
+                          className="data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-2.5 text-sm font-medium transition-all"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Trophy className="w-4 h-4" />
+                            <span className="hidden sm:inline">CodeMesh Master</span>
+                            <span className="sm:hidden">Master</span>
+                          </div>
+                        </TabsTrigger>
+                        <TabsTrigger 
+                          value="codeforces" 
+                          className="data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-2.5 text-sm font-medium transition-all"
+                        >
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M4.5 7.5C5.328 7.5 6 8.172 6 9v10.5c0 .828-.672 1.5-1.5 1.5h-3C.672 21 0 20.328 0 19.5V9c0-.828.672-1.5 1.5-1.5h3zm9-4.5c.828 0 1.5.672 1.5 1.5v15c0 .828-.672 1.5-1.5 1.5h-3c-.828 0-1.5-.672-1.5-1.5v-15c0-.828.672-1.5 1.5-1.5h3zm9 7.5c.828 0 1.5.672 1.5 1.5v7.5c0 .828-.672 1.5-1.5 1.5h-3c-.828 0-1.5-.672-1.5-1.5V12c0-.828.672-1.5 1.5-1.5h3z"/>
+                            </svg>
+                            <span className="hidden sm:inline">Codeforces</span>
+                            <span className="sm:hidden">CF</span>
+                          </div>
+                        </TabsTrigger>
+                        <TabsTrigger 
+                          value="leetcode" 
+                          className="data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 py-2.5 text-sm font-medium transition-all"
+                        >
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M13.483 0a1.374 1.374 0 0 0-.961.438L7.116 6.226l-3.854 4.126a5.266 5.266 0 0 0-1.209 2.104 5.35 5.35 0 0 0-.125.513 5.527 5.527 0 0 0 .062 2.362 5.83 5.83 0 0 0 .349 1.017 5.938 5.938 0 0 0 1.271 1.818l4.277 4.193.039.038c2.248 2.165 5.852 2.133 8.063-.074l2.396-2.392c.54-.54.54-1.414.003-1.955a1.378 1.378 0 0 0-1.951-.003l-2.396 2.392a3.021 3.021 0 0 1-4.205.038l-.02-.019-4.276-4.193c-.652-.64-.972-1.469-.948-2.263a2.68 2.68 0 0 1 .066-.523 2.545 2.545 0 0 1 .619-1.164L9.13 8.114c1.058-1.134 3.204-1.27 4.43-.278l3.501 2.831c.593.48 1.461.387 1.94-.207a1.384 1.384 0 0 0-.207-1.943l-3.5-2.831c-.8-.647-1.766-1.045-2.774-1.202l2.015-2.158A1.384 1.384 0 0 0 13.483 0zm-2.866 12.815a1.38 1.38 0 0 0-1.38 1.382 1.38 1.38 0 0 0 1.38 1.382H20.79a1.38 1.38 0 0 0 1.38-1.382 1.38 1.38 0 0 0-1.38-1.382z"/>
+                            </svg>
+                            <span className="hidden sm:inline">LeetCode</span>
+                            <span className="sm:hidden">LC</span>
+                          </div>
+                        </TabsTrigger>
                     </TabsList>
 
                         {/* CodeMesh Master Rating Tab */}
                         <TabsContent value="codemesh" className="space-y-6">
-                            {/* Podium */}
-                            {/* <Card className=""> */}
-                                {/* <CardHeader>
-                                    <CardTitle className="text-2xl">🏆 Top 3 Champions</CardTitle>
-                                    <CardDescription>
-                                        The highest-rated coders by CodeMesh Master Rating
-                                    </CardDescription>
-                                </CardHeader> */}
-                                <CardContent className="pb-0">
-                                    <Podium topThree={topThree} platform={null} />
-                                </CardContent>
-                            {/* </Card> */}
+                            {/* Filters */}
+                            <LeaderboardFilters
+                                selectedTier={selectedTier}
+                                onTierChange={handleTierChange}
+                                selectedCountry={selectedCountry}
+                                onCountryChange={handleCountryChange}
+                                selectedCollege={selectedCollege}
+                                onCollegeChange={handleCollegeChange}
+                                selectedGraduationYear={selectedGraduationYear}
+                                onGraduationYearChange={handleGraduationYearChange}
+                                onReset={handleReset}
+                                hasActiveFilters={hasActiveFilters}
+                            />
 
+                            {/* Podium - show if we have top 3 users and total > 3 */}
+                            {topThree.length >= 3 && totalFilteredUsers > 3 && (
+                                <div className="-mt-2">
+                                    <Podium topThree={topThree} platform={null} />
+                                </div>
+                            )}
 
                             {/* Leaderboard Table */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Rankings</CardTitle>
+                            <Card className="border-border/50 shadow-sm">
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="text-xl">Rankings</CardTitle>
                                     <CardDescription>
-                                        Ranked by CodeMesh Master Rating
+                                        {topThree.length >= 3 && totalFilteredUsers > 3
+                                            ? 'Ranked by CodeMesh Master Rating' 
+                                            : totalFilteredUsers > 0 ? `Showing ${totalFilteredUsers} user${totalFilteredUsers !== 1 ? 's' : ''} matching filters` : 'Ranked by CodeMesh Master Rating'}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    {/* Filters */}
-                                    <LeaderboardFilters
-                                        selectedTier={selectedTier}
-                                        onTierChange={handleTierChange}
-                                        searchQuery={searchQuery}
-                                        onSearchChange={setSearchQuery}
-                                        onSearch={handleSearch}
-                                        onReset={handleReset}
-                                    />
-
                                     {/* Error Alert */}
                                     {error && (
                                         <Alert variant="destructive">
@@ -331,35 +437,43 @@ const LeaderboardPage = () => {
 
                         {/* Codeforces Rating Tab */}
                         <TabsContent value="codeforces" className="space-y-6">
-                            {/* Podium */}
-                            {/* <Card className="border-primary/20"> */}
-                                {/* <CardHeader>
-                                    <CardTitle className="text-2xl">🏆 Top 3 Codeforces Champions</CardTitle>
-                                    <CardDescription>
-                                        The highest-rated coders on Codeforces
-                                    </CardDescription>
-                                </CardHeader> */}
-                                <CardContent className="pb-0">
-                                    {cfTopThree.length > 0 ? (
-                                        <Podium topThree={cfTopThree} platform="codeforces" />
-                                    ) : (
-                                        <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">
-                                            <p className="text-lg">No Codeforces data available yet...</p>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            {/* </Card> */}
+                            {/* Filters */}
+                            <LeaderboardFilters
+                                selectedTier={selectedTier}
+                                onTierChange={handleTierChange}
+                                selectedCountry={selectedCountry}
+                                onCountryChange={handleCountryChange}
+                                selectedCollege={selectedCollege}
+                                onCollegeChange={handleCollegeChange}
+                                selectedGraduationYear={selectedGraduationYear}
+                                onGraduationYearChange={handleGraduationYearChange}
+                                onReset={handleReset}
+                                hasActiveFilters={hasActiveFilters}
+                            />
+
+                            {/* Podium - show if we have at least 3 users */}
+                            {cfTopThree.length >= 3 && cfTotalFilteredUsers > 3 && (
+                                <div className="-mt-2">
+                                    <Podium topThree={cfTopThree} platform="codeforces" />
+                                </div>
+                            )}
 
                             {/* Leaderboard Table */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Rankings </CardTitle>
+                            <Card className="border-border/50 shadow-sm">
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="text-xl">Rankings</CardTitle>
                                     <CardDescription>
-                                        Ranked by Codeforces Rating
+                                        {cfTopThree.length >= 3 && cfTotalFilteredUsers > 3
+                                            ? 'Ranked by Codeforces Rating'
+                                            : cfTotalFilteredUsers > 0 ? `Showing ${cfTotalFilteredUsers} user${cfTotalFilteredUsers !== 1 ? 's' : ''} with Codeforces data` : 'Ranked by Codeforces Rating'}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    {cfLeaderboardData.length > 0 ? (
+                                    {loading ? (
+                                        <div className="flex items-center justify-center py-12">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                                        </div>
+                                    ) : (cfTopThree.length > 0 || cfLeaderboardData.length > 0) ? (
                                         <LeaderboardTable
                                             data={cfLeaderboardData}
                                             loading={loading}
@@ -379,35 +493,43 @@ const LeaderboardPage = () => {
 
                         {/* LeetCode Rating Tab */}
                         <TabsContent value="leetcode" className="space-y-6">
-                            {/* Podium */}
-                            {/* <Card className="border-primary/20"> */}
-                                {/* <CardHeader>
-                                    <CardTitle className="text-2xl">🏆 Top 3 LeetCode Champions</CardTitle>
-                                    <CardDescription>
-                                        The highest-rated coders on LeetCode
-                                    </CardDescription>
-                                </CardHeader> */}
-                                <CardContent className="pb-0">
-                                    {lcTopThree.length > 0 ? (
-                                        <Podium topThree={lcTopThree} platform="leetcode" />
-                                    ) : (
-                                        <div className="flex items-center justify-center min-h-[400px] text-muted-foreground">
-                                            <p className="text-lg">No LeetCode data available yet...</p>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            {/* </Card> */}
+                            {/* Filters */}
+                            <LeaderboardFilters
+                                selectedTier={selectedTier}
+                                onTierChange={handleTierChange}
+                                selectedCountry={selectedCountry}
+                                onCountryChange={handleCountryChange}
+                                selectedCollege={selectedCollege}
+                                onCollegeChange={handleCollegeChange}
+                                selectedGraduationYear={selectedGraduationYear}
+                                onGraduationYearChange={handleGraduationYearChange}
+                                onReset={handleReset}
+                                hasActiveFilters={hasActiveFilters}
+                            />
+
+                            {/* Podium - show if we have at least 3 users */}
+                            {lcTopThree.length >= 3 && lcTotalFilteredUsers > 3 && (
+                                <div className="-mt-2">
+                                    <Podium topThree={lcTopThree} platform="leetcode" />
+                                </div>
+                            )}
 
                             {/* Leaderboard Table */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Rankings</CardTitle>
+                            <Card className="border-border/50 shadow-sm">
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="text-xl">Rankings</CardTitle>
                                     <CardDescription>
-                                        Ranked by LeetCode Rating
+                                        {lcTopThree.length >= 3 && lcTotalFilteredUsers > 3
+                                            ? 'Ranked by LeetCode Rating'
+                                            : lcTotalFilteredUsers > 0 ? `Showing ${lcTotalFilteredUsers} user${lcTotalFilteredUsers !== 1 ? 's' : ''} with LeetCode data` : 'Ranked by LeetCode Rating'}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    {lcLeaderboardData.length > 0 ? (
+                                    {loading ? (
+                                        <div className="flex items-center justify-center py-12">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                                        </div>
+                                    ) : (lcTopThree.length > 0 || lcLeaderboardData.length > 0) ? (
                                         <LeaderboardTable
                                             data={lcLeaderboardData}
                                             loading={loading}

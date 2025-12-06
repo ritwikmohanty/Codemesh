@@ -249,7 +249,9 @@ class LeaderboardService {
       page = 1,
       limit = 50,
       tier = null,
-      search = null,
+      college = null,
+      country = null,
+      graduationYear = null,
       sortBy = 'masterRating',
       sortOrder = 'desc'
     } = options;
@@ -268,26 +270,32 @@ class LeaderboardService {
       
       const skip = (page - 1) * limit;
       
+      // Build user filter for college, country, graduationYear
+      let userFilter = null;
+      if (college || country || graduationYear) {
+        const userQuery = {};
+        if (college) {
+          userQuery['onboarding.institution'] = { $regex: college, $options: 'i' };
+        }
+        if (country) {
+          userQuery['onboarding.country'] = country;
+        }
+        if (graduationYear) {
+          userQuery['onboarding.graduationYear'] = graduationYear;
+        }
+        
+        const users = await User.find(userQuery).select('_id').lean();
+        const userIds = users.map(u => u._id);
+        query.user = { $in: userIds };
+      }
+      
       // Get leaderboard entries with user information
-      let leaderboardQuery = LeaderboardEntry.find(query)
-        .populate('user', 'username name avatarUrl college location')
+      const leaderboardQuery = LeaderboardEntry.find(query)
+        .populate('user', 'username name avatarUrl onboarding')
         .sort(sort)
         .skip(skip)
         .limit(limit)
         .lean();
-      
-      // If search is provided, we need to filter by username
-      if (search) {
-        const users = await User.find({
-          $or: [
-            { username: { $regex: search, $options: 'i' } },
-            { name: { $regex: search, $options: 'i' } }
-          ]
-        }).select('_id').lean();
-        
-        const userIds = users.map(u => u._id);
-        query.user = { $in: userIds };
-      }
       
       const [entries, total] = await Promise.all([
         leaderboardQuery,
@@ -423,8 +431,50 @@ class LeaderboardService {
    */
   async getPlatformLeaderboard(options = {}) {
     try {
-      const { platform, page = 1, limit = 50 } = options;
+      const { 
+        platform, 
+        page = 1, 
+        limit = 50,
+        tier = null,
+        college = null,
+        country = null,
+        graduationYear = null
+      } = options;
       const skip = (page - 1) * limit;
+      
+      // First, filter users based on onboarding data if needed
+      let userIds = null;
+      if (college || country || graduationYear) {
+        const userQuery = {};
+        if (college) {
+          userQuery['onboarding.institution'] = { $regex: college, $options: 'i' };
+        }
+        if (country) {
+          userQuery['onboarding.country'] = country;
+        }
+        if (graduationYear) {
+          userQuery['onboarding.graduationYear'] = graduationYear;
+        }
+        
+        const users = await User.find(userQuery).select('_id').lean();
+        userIds = users.map(u => u._id);
+        
+        // If no users match the criteria, return empty result
+        if (userIds.length === 0) {
+          return {
+            success: true,
+            data: [],
+            pagination: {
+              currentPage: page,
+              totalPages: 0,
+              totalEntries: 0,
+              entriesPerPage: limit,
+              hasNextPage: false,
+              hasPreviousPage: false
+            }
+          };
+        }
+      }
       
       // Build aggregation pipeline to extract platform rating
       const pipeline = [
@@ -433,7 +483,9 @@ class LeaderboardService {
           $match: {
             'ratingComponents.platformRatings': {
               $elemMatch: { platform: platform }
-            }
+            },
+            ...(userIds && { user: { $in: userIds } }),
+            ...(tier && { tier: tier })
           }
         },
         // Add a field with the platform's rating for sorting
@@ -489,7 +541,8 @@ class LeaderboardService {
               _id: '$userData._id',
               username: '$userData.username',
               name: '$userData.name',
-              avatarUrl: '$userData.avatarUrl'
+              avatarUrl: '$userData.avatarUrl',
+              onboarding: '$userData.onboarding'
             },
             platformRating: 1,
             platformRank: 1,
@@ -544,12 +597,16 @@ class LeaderboardService {
    */
   async getTopUsersByPlatform(options = {}) {
     try {
-      const { platform, count = 10 } = options;
+      const { platform, count = 10, tier, college, country, graduationYear } = options;
       
       const result = await this.getPlatformLeaderboard({
         platform,
         page: 1,
-        limit: count
+        limit: count,
+        tier,
+        college,
+        country,
+        graduationYear
       });
       
       return {

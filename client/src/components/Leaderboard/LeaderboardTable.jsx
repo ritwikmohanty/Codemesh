@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
@@ -54,6 +55,12 @@ const RankChangeIndicator = ({ change }) => {
 };
 
 const LeaderboardTable = ({ data, loading, currentPage, onPageChange, totalPages, platform = null }) => {
+  const navigate = useNavigate();
+
+  const handleRowClick = (username) => {
+    navigate(`/portfolio/${username}`);
+  };
+
   // Helper function to get the correct rating field based on platform
   const getRating = (entry) => {
     return platform ? entry.platformRating : entry.masterRating;
@@ -110,6 +117,7 @@ const LeaderboardTable = ({ data, loading, currentPage, onPageChange, totalPages
               <TableRow 
                 key={entry._id} 
                 className="hover:bg-accent/50 transition-colors cursor-pointer"
+                onClick={() => handleRowClick(entry.user?.username)}
               >
                 {/* Rank */}
                 <TableCell className="text-center font-semibold">
