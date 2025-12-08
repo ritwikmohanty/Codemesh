@@ -1,6 +1,7 @@
 import CodeforcesServiceV2 from '../services/platform/CodeforcesServiceV2.js';
 import LeetCodeServiceV2 from '../services/platform/LeetCodeServiceV2.js';
 import User from '../models/User.js';
+import PlatformData from '../models/PlatformData.js';
 import LeaderboardService from '../services/leaderboardService.js';
 
 const codeforcesService = new CodeforcesServiceV2();
@@ -70,6 +71,88 @@ export async function syncPlatformData(req, res) {
     res.status(500).json({
       success: false,
       message: 'Failed to sync platform data',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Sync all connected platforms for a user in parallel
+ * Used for background sync when user views their own portfolio
+ */
+export async function syncAllPlatforms(req, res) {
+  try {
+    const userId = req.user._id;
+
+    // Get all connected platforms for the user
+    const connectedPlatforms = await PlatformData.find({ user: userId, isActive: true })
+      .select('platform handle')
+      .lean();
+
+    if (!connectedPlatforms || connectedPlatforms.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No connected platforms to sync',
+        data: {
+          synced: [],
+          failed: [],
+          totalSynced: 0
+        }
+      });
+    }
+
+    // Sync all platforms in parallel
+    const syncPromises = connectedPlatforms.map(async (platformData) => {
+      const { platform, handle } = platformData;
+      try {
+        let result;
+        switch (platform.toLowerCase()) {
+          case 'codeforces':
+            result = await codeforcesService.syncUserData(userId, handle);
+            break;
+          case 'leetcode':
+            result = await leetcodeService.syncUserData(userId, handle);
+            break;
+          default:
+            throw new Error(`Unsupported platform: ${platform}`);
+        }
+        return { platform, handle, success: true, result };
+      } catch (error) {
+        console.error(`Failed to sync ${platform} for ${handle}:`, error.message);
+        return { platform, handle, success: false, error: error.message };
+      }
+    });
+
+    const results = await Promise.all(syncPromises);
+
+    const synced = results.filter(r => r.success);
+    const failed = results.filter(r => !r.success);
+
+    // Trigger leaderboard rating recalculation if any platform synced successfully
+    if (synced.length > 0) {
+      try {
+        await leaderboardService.calculateAndUpdateUserRating(userId);
+        console.log(`Leaderboard rating updated for user ${userId} after sync-all`);
+      } catch (leaderboardError) {
+        console.error('Failed to update leaderboard rating:', leaderboardError);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Synced ${synced.length} of ${connectedPlatforms.length} platforms`,
+      data: {
+        synced: synced.map(s => ({ platform: s.platform, handle: s.handle })),
+        failed: failed.map(f => ({ platform: f.platform, handle: f.handle, error: f.error })),
+        totalSynced: synced.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Sync all platforms error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to sync platforms',
       error: error.message
     });
   }

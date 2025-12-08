@@ -9,6 +9,7 @@ import { ThemeProvider } from "./components/ui/theme-provider"
 import Portfolio from './Pages/Portfolio'
 import Leaderboard from './Pages/LeaderboardPage'
 import Settings from './Pages/Settings'
+import { Toaster } from 'sonner'
 
 const App = () => {
     return (
@@ -29,6 +30,18 @@ const App = () => {
                         <Route path="/settings" element={<Settings />} />
                     </Routes>
                 </OnboardingWrapper>
+                <Toaster 
+                  position="bottom-right" 
+                  richColors 
+                  closeButton
+                  toastOptions={{
+                    style: {
+                      background: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      color: 'hsl(var(--foreground))',
+                    },
+                  }}
+                />
             </ThemeProvider>
             </BrowserRouter>
         </AuthProvider>

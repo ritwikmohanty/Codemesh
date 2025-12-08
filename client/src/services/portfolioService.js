@@ -89,9 +89,25 @@ export const getPlatformData = async (platform) => {
   }
 };
 
+/**
+ * Sync all connected platforms for the authenticated user
+ * Used for background sync when user views their own portfolio
+ */
+export const syncAllPlatforms = async () => {
+  try {
+    const response = await apiClient.post('/platform/sync-all');
+    return response.data;
+  } catch (error) {
+    const message = error.response?.data?.message || error.message || 'Failed to sync platforms';
+    console.error('Sync all platforms error:', error.response?.data || error.message);
+    throw new Error(message);
+  }
+};
+
 export default {
   getMyPortfolio,
   getPortfolioByUsername,
   syncPlatformData,
   getPlatformData,
+  syncAllPlatforms,
 };

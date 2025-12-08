@@ -1,6 +1,7 @@
 import express from 'express';
 import { 
   syncPlatformData,
+  syncAllPlatforms,
   getMyCodeforcesData,
   getMyLeetCodeData,
   getCodeforcesDataByUsername,
@@ -9,11 +10,13 @@ import {
   getPlatformSummary
 } from '../controllers/platformController.js';
 import { authenticateToken } from '../middlewares/auth.js';
+import { syncAllRateLimit } from '../middlewares/rateLimit.js';
 
 const router = express.Router();
 
-// Platform sync endpoint (protected)
+// Platform sync endpoints (protected)
 router.post('/platform/sync', authenticateToken, syncPlatformData);
+router.post('/platform/sync-all', authenticateToken, syncAllRateLimit, syncAllPlatforms);
 
 // Authenticated user's platform data
 router.get('/platform/codeforces', authenticateToken, getMyCodeforcesData);
