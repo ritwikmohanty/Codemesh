@@ -19,6 +19,8 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
+  ShieldCheck,
+  ShieldX,
 } from "lucide-react"
 import {
   Tooltip,
@@ -35,6 +37,7 @@ import { Button } from "@/components/ui/button"
 import { getMyPortfolio, getPortfolioByUsername, syncAllPlatforms } from "@/services/portfolioService"
 import { ProblemDistributionPieChart } from "@/components/ui/problem-distribution-pie-chart"
 import { CategoryDistributionPieChart } from "@/components/ui/category-distribution-pie-chart"
+import { IconRosetteDiscountCheckFilled } from '@tabler/icons-react'
 
 // Sync cooldown constants
 const SYNC_COOLDOWN_KEY = 'portfolio_last_sync'
@@ -211,6 +214,32 @@ const Portfolio = () => {
   const [refreshing, setRefreshing] = useState(false)
   const [isPublicProfile, setIsPublicProfile] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
+  const [isDark, setIsDark] = useState(
+    typeof window !== 'undefined' && document.documentElement.classList.contains('dark')
+  )
+
+  // Watch for theme changes
+  useEffect(() => {
+    const checkTheme = () => {
+      const isDarkMode = document.documentElement.classList.contains('dark');
+      setIsDark(isDarkMode);
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          checkTheme();
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   // Check if sync is on cooldown (client-side)
   const canSync = () => {
@@ -452,10 +481,13 @@ const Portfolio = () => {
   const platformStats = {}
   portfolio?.linkedAccounts?.forEach(account => {
     platformStats[account.platform] = {
+      handle: account.handle || "",
       rating: account.rating || 0,
       maxRating: account.maxRating || 0,
       rank: account.rank || "unrated",
       totalSolved: account.totalSolved || 0,
+      lastSynced: account.lastSynced || null,
+      isVerified: account.isVerified || false,
       color: getPlatformColor(account.platform)
     }
   })
@@ -707,18 +739,65 @@ const Portfolio = () => {
   )
 
   const PlatformCard = ({ platform, data }) => (
-    <div className="bg-card border border-border rounded-lg p-4 flex items-center gap-3 hover:shadow-md transition">
-      <div
-        className="w-3 h-3 rounded-full flex-shrink-0"
-        style={{ backgroundColor: data.color }}
+    <div className="bg-card border border-border rounded-lg p-4 flex items-center gap-4 hover:shadow-md transition">
+      <img
+        src={`/small_logos/${platform}${isDark ? '_dark' : ''}.png`}
+        alt={platform}
+        className="w-12 h-12 rounded-lg object-contain flex-shrink-0"
+        onError={(e) => {
+          // Fallback to text if image fails to load
+          e.target.style.display = 'none';
+          const fallbackDiv = document.createElement('div');
+          fallbackDiv.className = `w-12 h-12 rounded-lg flex items-center justify-center font-bold text-sm bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300 flex-shrink-0`;
+          fallbackDiv.textContent = platform.slice(0, 2).toUpperCase();
+          e.target.parentNode.insertBefore(fallbackDiv, e.target.nextSibling);
+        }}
       />
       <div className="flex-1 min-w-0">
-        <div className="font-semibold capitalize">{platform}</div>
-        <div className="text-sm text-muted-foreground">
-          {data.rating} • {data.rank}
+        <div className="flex items-center gap-2 mb-1">
+          <span className="font-semibold capitalize">{platform}</span>
+          {data.isVerified ? (
+            <Tooltip>
+              <TooltipTrigger>
+                <IconRosetteDiscountCheckFilled className="h-4 w-4 text-green-600 dark:text-green-500 flex-shrink-0" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Verified Account</p>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <Tooltip>
+              <TooltipTrigger>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+                  Unverified
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>This account ownership has not been verified</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
-        <div className="text-xs text-muted-foreground">
-          Solved: {data.totalSolved}
+        {data.handle && (
+          <p className="text-sm font-medium text-primary truncate mb-2">{data.handle}</p>
+        )}
+        <div className="text-xs text-muted-foreground space-y-1">
+          {data.rating > 0 && (
+            <div>
+              Rating: <span className="font-semibold text-foreground">{data.rating}</span>
+              {data.maxRating > 0 && ` (Max: ${data.maxRating})`}
+            </div>
+          )}
+          {data.totalSolved > 0 && (
+            <div>
+              Solved: <span className="font-semibold text-foreground">{data.totalSolved}</span>
+            </div>
+          )}
+          {data.lastSynced && (
+            <div>
+              Last synced: {new Date(data.lastSynced).toLocaleDateString()}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -781,6 +781,39 @@ class LeetCodeService extends BasePlatformService {
   }
 
   /**
+   * Check if verification code exists in user's aboutMe/summary section
+   * @param {string} username - LeetCode username
+   * @param {string} verificationCode - The code to check for
+   * @returns {Promise<boolean>} True if code is found in aboutMe
+   */
+  async checkVerificationCode(username, verificationCode) {
+    try {
+      const query = `
+        query($username: String!) {
+          matchedUser(username: $username) {
+            profile {
+              aboutMe
+            }
+          }
+        }
+      `;
+      
+      const data = await this.makeRequest(query, { username });
+      
+      if (!data || !data.matchedUser || !data.matchedUser.profile) {
+        return false;
+      }
+
+      // Check if the verification code is in the aboutMe/summary field
+      const aboutMe = data.matchedUser.profile.aboutMe || '';
+      return aboutMe.includes(verificationCode);
+    } catch (error) {
+      console.error('Error checking LeetCode verification code:', error);
+      return false;
+    }
+  }
+
+  /**
    * Get rate limit configuration
    */
   getRateLimit() {

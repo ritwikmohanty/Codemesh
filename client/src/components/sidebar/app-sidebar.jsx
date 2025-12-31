@@ -103,7 +103,7 @@ const data = {
       icon: IconTrophy,
     },
     {
-      title: "Team",
+      title: "Practice",
       url: "#",
       icon: IconUsers,
     },

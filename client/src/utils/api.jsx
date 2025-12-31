@@ -80,6 +80,15 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(platformData),
     }),
+    generateVerificationCode: (platform) => apiRequest('/platform/generate-verification-code', {
+      method: 'POST',
+      body: JSON.stringify({ platform }),
+    }),
+    verify: (platform) => apiRequest('/platform/verify', {
+      method: 'POST',
+      body: JSON.stringify({ platform }),
+    }),
+    getVerificationStatus: () => apiRequest('/platform/verification-status'),
   },
 };
 

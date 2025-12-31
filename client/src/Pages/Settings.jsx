@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../utils/api';
 import { motion } from 'framer-motion';
@@ -27,7 +28,10 @@ import {
   Globe,
   Edit2,
   X,
-  Check
+  Check,
+  ShieldCheck,
+  ExternalLink,
+  Copy
 } from 'lucide-react';
 import { IconRosetteDiscountCheckFilled } from '@tabler/icons-react';
 
@@ -88,6 +92,18 @@ const Settings = () => {
   const [platformMessage, setPlatformMessage] = useState({ type: '', text: '' });
   const [isEditingPlatform, setIsEditingPlatform] = useState(null);
   const [editHandle, setEditHandle] = useState('');
+
+  // Verification state
+  const [verificationModal, setVerificationModal] = useState({
+    isOpen: false,
+    platform: '',
+    handle: '',
+    code: '',
+    instructions: null,
+    isVerified: false
+  });
+  const [verificationLoading, setVerificationLoading] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   // Password state
   const [passwordData, setPasswordData] = useState({
@@ -270,6 +286,87 @@ const Settings = () => {
   // Get synced platforms - now from state
   const getSyncedPlatforms = () => {
     return linkedPlatforms;
+  };
+
+  // Handle opening verification modal
+  const handleOpenVerification = async (platform, handle, isVerified) => {
+    // If already verified, just show status
+    if (isVerified) {
+      setVerificationModal({
+        isOpen: true,
+        platform,
+        handle,
+        code: '',
+        instructions: null,
+        isVerified: true
+      });
+      return;
+    }
+
+    // Generate verification code
+    setVerificationLoading(true);
+    try {
+      const response = await api.platform.generateVerificationCode(platform);
+      if (response.success) {
+        setVerificationModal({
+          isOpen: true,
+          platform: response.data.platform,
+          handle: response.data.handle,
+          code: response.data.verificationCode,
+          instructions: response.data.instructions,
+          isVerified: false
+        });
+      }
+    } catch (error) {
+      setPlatformMessage({ type: 'error', text: error.message || 'Failed to generate verification code' });
+    } finally {
+      setVerificationLoading(false);
+    }
+  };
+
+  // Handle verifying platform
+  const handleVerifyPlatform = async () => {
+    setVerificationLoading(true);
+    try {
+      const response = await api.platform.verify(verificationModal.platform);
+      if (response.success) {
+        setVerificationModal(prev => ({ ...prev, isVerified: true }));
+        setPlatformMessage({ type: 'success', text: `Successfully verified ${verificationModal.platform} account!` });
+        
+        // Update linkedPlatforms to reflect verification
+        setLinkedPlatforms(prev => prev.map(p => 
+          p.platform === verificationModal.platform 
+            ? { ...p, isVerified: true, verifiedAt: new Date() }
+            : p
+        ));
+        
+        setTimeout(() => setPlatformMessage({ type: '', text: '' }), 3000);
+      }
+    } catch (error) {
+      setPlatformMessage({ type: 'error', text: error.message || 'Verification failed. Please make sure you added the code to your profile.' });
+    } finally {
+      setVerificationLoading(false);
+    }
+  };
+
+  // Copy verification code to clipboard
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(verificationModal.code);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  };
+
+  // Close verification modal
+  const handleCloseVerificationModal = () => {
+    setVerificationModal({
+      isOpen: false,
+      platform: '',
+      handle: '',
+      code: '',
+      instructions: null,
+      isVerified: false
+    });
+    setCodeCopied(false);
   };
 
   // Handle password change
@@ -605,7 +702,7 @@ const Settings = () => {
                       <div className="space-y-3">
                         <Label className="text-base font-semibold">Your Platforms</Label>
                         <div className="space-y-2">
-                          {getSyncedPlatforms().map(({ platform, handle, rating, maxRating, totalSolved, lastSynced }) => (
+                          {getSyncedPlatforms().map(({ platform, handle, rating, maxRating, totalSolved, lastSynced, isVerified }) => (
                             <motion.div
                               key={platform}
                               initial={{ opacity: 0, y: 10 }}
@@ -631,7 +728,13 @@ const Settings = () => {
                                     <Badge variant="secondary" className="capitalize">
                                       {platform}
                                     </Badge>
-                                    <IconRosetteDiscountCheckFilled className="h-5 w-5 text-green-600 dark:text-green-500 flex-shrink-0" />
+                                    {isVerified ? (
+                                      <IconRosetteDiscountCheckFilled className="h-5 w-5 text-green-600 dark:text-green-500 flex-shrink-0" title="Verified" />
+                                    ) : (
+                                      <Badge variant="outline" className="text-xs text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700">
+                                        Unverified
+                                      </Badge>
+                                    )}
                                   </div>
                                   {isEditingPlatform === platform ? (
                                     <div className="flex items-center gap-2 mt-2">
@@ -682,15 +785,36 @@ const Settings = () => {
                                 </div>
                               </div>
                               {isEditingPlatform !== platform && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleEditPlatform(platform, handle)}
-                                  className="h-8 px-3"
-                                >
-                                  <Edit2 className="h-3.5 w-3.5 mr-1" />
-                                  <span className="text-xs">Edit</span>
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                  {/* Verify Button - only show for supported platforms */}
+                                  {['codeforces', 'leetcode'].includes(platform) && (
+                                    <Button
+                                      size="sm"
+                                      variant={isVerified ? "ghost" : "outline"}
+                                      onClick={() => handleOpenVerification(platform, handle, isVerified)}
+                                      disabled={verificationLoading}
+                                      className={`h-8 px-3 ${isVerified ? 'text-green-600 dark:text-green-500' : 'text-amber-600 dark:text-amber-400'}`}
+                                    >
+                                      {verificationLoading && verificationModal.platform === platform ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+                                          <span className="text-xs">{isVerified ? 'Verified' : 'Verify'}</span>
+                                        </>
+                                      )}
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleEditPlatform(platform, handle)}
+                                    className="h-8 px-3"
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5 mr-1" />
+                                    <span className="text-xs">Edit</span>
+                                  </Button>
+                                </div>
                               )}
                             </motion.div>
                           ))}
@@ -837,6 +961,120 @@ const Settings = () => {
             </Tabs>
           </motion.div>
         </div>
+
+        {/* Verification Modal */}
+        <Dialog open={verificationModal.isOpen} onOpenChange={handleCloseVerificationModal}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5" />
+                {verificationModal.isVerified ? 'Platform Verified' : 'Verify Profile'}
+              </DialogTitle>
+              <DialogDescription>
+                {verificationModal.isVerified 
+                  ? `Your ${verificationModal.platform} account (${verificationModal.handle}) is verified.`
+                  : `Verify that you own the ${verificationModal.platform} account: ${verificationModal.handle}`
+                }
+              </DialogDescription>
+            </DialogHeader>
+
+            {verificationModal.isVerified ? (
+              <div className="flex flex-col items-center py-6">
+                <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+                  <IconRosetteDiscountCheckFilled className="h-10 w-10 text-green-600 dark:text-green-500" />
+                </div>
+                <p className="text-center text-muted-foreground">
+                  This account has been verified as belonging to you.
+                </p>
+              </div>
+            ) : verificationModal.instructions ? (
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  {verificationModal.instructions.steps.map((step, index) => (
+                    <div key={index} className="flex gap-3">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium">
+                        {index + 1}
+                      </div>
+                      <p className="text-sm text-muted-foreground pt-0.5">
+                        {step.includes(verificationModal.code) ? (
+                          <>
+                            {step.split(verificationModal.code)[0]}
+                            <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-xs font-semibold text-foreground">
+                              {verificationModal.code}
+                            </code>
+                            {step.split(verificationModal.code)[1]}
+                          </>
+                        ) : (
+                          step
+                        )}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
+                  <code className="flex-1 font-mono text-sm font-semibold">{verificationModal.code}</code>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleCopyCode}
+                    className="h-8 px-2"
+                  >
+                    {codeCopied ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+
+                {verificationModal.instructions.note && (
+                  <p className="text-xs text-muted-foreground italic">
+                    Note: {verificationModal.instructions.note}
+                  </p>
+                )}
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => window.open(verificationModal.instructions.profileUrl, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open Profile
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={handleVerifyPlatform}
+                    disabled={verificationLoading}
+                  >
+                    {verificationLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="h-4 w-4 mr-2" />
+                        Verify Now
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="ghost" onClick={handleCloseVerificationModal}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
   </AppSidebar>
   );
 };

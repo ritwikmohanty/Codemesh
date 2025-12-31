@@ -427,3 +427,275 @@ export async function getPlatformSummary(req, res) {
     });
   }
 }
+
+/**
+ * Generate verification code for a platform
+ * Creates a unique code the user must add to their profile to prove ownership
+ */
+export async function generateVerificationCode(req, res) {
+  try {
+    const { platform } = req.body;
+    const userId = req.user._id;
+
+    if (!platform) {
+      return res.status(400).json({
+        success: false,
+        message: 'Platform is required'
+      });
+    }
+
+    const supportedPlatforms = ['codeforces', 'leetcode'];
+    if (!supportedPlatforms.includes(platform.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: `Verification for ${platform} is not supported yet`
+      });
+    }
+
+    // Find platform data for user
+    const platformData = await PlatformData.findOne({
+      user: userId,
+      platform: platform.toLowerCase(),
+      isActive: true
+    });
+
+    if (!platformData) {
+      return res.status(404).json({
+        success: false,
+        message: `No ${platform} account linked. Please sync your ${platform} account first.`
+      });
+    }
+
+    // Generate a random 8-character verification code
+    const verificationCode = generateRandomCode(8);
+
+    // Store the verification code
+    platformData.verificationCode = verificationCode;
+    platformData.isVerified = false; // Reset verification status
+    platformData.verifiedAt = null;
+    await platformData.save();
+
+    // Return platform-specific instructions
+    const instructions = getVerificationInstructions(platform.toLowerCase(), verificationCode);
+
+    res.json({
+      success: true,
+      data: {
+        platform: platform.toLowerCase(),
+        handle: platformData.handle,
+        verificationCode,
+        instructions
+      }
+    });
+
+  } catch (error) {
+    console.error('Error generating verification code:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate verification code',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
+/**
+ * Verify platform ownership by checking if verification code exists in profile
+ */
+export async function verifyPlatform(req, res) {
+  try {
+    const { platform } = req.body;
+    const userId = req.user._id;
+
+    if (!platform) {
+      return res.status(400).json({
+        success: false,
+        message: 'Platform is required'
+      });
+    }
+
+    const supportedPlatforms = ['codeforces', 'leetcode'];
+    if (!supportedPlatforms.includes(platform.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: `Verification for ${platform} is not supported yet`
+      });
+    }
+
+    // Find platform data for user
+    const platformData = await PlatformData.findOne({
+      user: userId,
+      platform: platform.toLowerCase(),
+      isActive: true
+    });
+
+    if (!platformData) {
+      return res.status(404).json({
+        success: false,
+        message: `No ${platform} account linked`
+      });
+    }
+
+    if (!platformData.verificationCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'No verification code generated. Please generate a verification code first.'
+      });
+    }
+
+    if (platformData.isVerified) {
+      return res.json({
+        success: true,
+        message: 'Platform is already verified',
+        data: {
+          platform: platform.toLowerCase(),
+          handle: platformData.handle,
+          isVerified: true,
+          verifiedAt: platformData.verifiedAt
+        }
+      });
+    }
+
+    // Check verification based on platform
+    let isVerified = false;
+    let verificationField = '';
+
+    switch (platform.toLowerCase()) {
+      case 'codeforces':
+        isVerified = await codeforcesService.checkVerificationCode(
+          platformData.handle,
+          platformData.verificationCode
+        );
+        verificationField = 'First Name';
+        break;
+      case 'leetcode':
+        isVerified = await leetcodeService.checkVerificationCode(
+          platformData.handle,
+          platformData.verificationCode
+        );
+        verificationField = 'Summary/About Me';
+        break;
+      default:
+        return res.status(400).json({ success: false, message: 'Unsupported platform' });
+    }
+
+    if (isVerified) {
+      // Update verification status
+      platformData.isVerified = true;
+      platformData.verifiedAt = new Date();
+      await platformData.save();
+
+      res.json({
+        success: true,
+        message: `Successfully verified ${platform} account!`,
+        data: {
+          platform: platform.toLowerCase(),
+          handle: platformData.handle,
+          isVerified: true,
+          verifiedAt: platformData.verifiedAt
+        }
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: `Verification failed. Please make sure you've added the code "${platformData.verificationCode}" to your ${verificationField} on ${platform} and saved your profile.`,
+        data: {
+          platform: platform.toLowerCase(),
+          handle: platformData.handle,
+          isVerified: false,
+          expectedCode: platformData.verificationCode
+        }
+      });
+    }
+
+  } catch (error) {
+    console.error('Error verifying platform:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify platform',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
+/**
+ * Get verification status for all platforms
+ */
+export async function getVerificationStatus(req, res) {
+  try {
+    const userId = req.user._id;
+
+    const platforms = await PlatformData.find({
+      user: userId,
+      isActive: true
+    }).select('platform handle isVerified verifiedAt verificationCode').lean();
+
+    const status = platforms.map(p => ({
+      platform: p.platform,
+      handle: p.handle,
+      isVerified: p.isVerified || false,
+      verifiedAt: p.verifiedAt || null,
+      hasPendingVerification: !!p.verificationCode && !p.isVerified
+    }));
+
+    res.json({
+      success: true,
+      data: status
+    });
+
+  } catch (error) {
+    console.error('Error fetching verification status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch verification status',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+}
+
+/**
+ * Helper function to generate random alphanumeric code
+ */
+function generateRandomCode(length) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+/**
+ * Get platform-specific verification instructions
+ */
+function getVerificationInstructions(platform, code) {
+  switch (platform) {
+    case 'codeforces':
+      return {
+        steps: [
+          'Go to https://codeforces.com/settings/social',
+          `Edit the "First Name" field and paste the following code: ${code}`,
+          'Save your profile',
+          'Click the "Verify" button below'
+        ],
+        note: 'After verification, you may change your first name back to normal.',
+        profileUrl: 'https://codeforces.com/settings/social'
+      };
+    case 'leetcode':
+      return {
+        steps: [
+          'Go to https://leetcode.com/profile/',
+          `Edit the "Summary" section and paste the following code: ${code}`,
+          'Save your profile',
+          'Click the "Verify" button below'
+        ],
+        note: 'After verification, you may change your summary back to normal.',
+        profileUrl: 'https://leetcode.com/profile/'
+      };
+    default:
+      return {
+        steps: ['Verification not available for this platform'],
+        note: '',
+        profileUrl: ''
+      };
+  }
+}

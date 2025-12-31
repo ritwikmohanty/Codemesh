@@ -447,6 +447,29 @@ class CodeforcesService extends BasePlatformService {
   }
 
   /**
+   * Check if verification code exists in user's first name
+   * @param {string} handle - Codeforces handle
+   * @param {string} verificationCode - The code to check for
+   * @returns {Promise<boolean>} True if code is found in first name
+   */
+  async checkVerificationCode(handle, verificationCode) {
+    try {
+      const userInfo = await this.getUserInfo(handle);
+      
+      if (!userInfo) {
+        return false;
+      }
+
+      // Check if the verification code is in the firstName field
+      const firstName = userInfo.firstName || '';
+      return firstName.includes(verificationCode);
+    } catch (error) {
+      console.error('Error checking Codeforces verification code:', error);
+      return false;
+    }
+  }
+
+  /**
    * Get rate limit configuration
    */
   getRateLimit() {

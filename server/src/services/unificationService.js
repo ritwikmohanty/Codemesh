@@ -164,7 +164,8 @@ class UnificationService {
       profileUrl: quickAccess.profileUrl || '',
       avatarUrl: quickAccess.avatarUrl || '',
       lastSynced: platformData.lastSynced,
-      isVerified: false,
+      isVerified: platformData.isVerified || false,
+      verifiedAt: platformData.verifiedAt || null,
       badgesCount: quickAccess.badgesCount || 0
     });
 

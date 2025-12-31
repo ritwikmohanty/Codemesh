@@ -10,7 +10,7 @@ export async function getLinkedPlatforms(req, res) {
     const userId = req.user._id;
 
     const platformData = await PlatformData.find({ user: userId, isActive: true })
-      .select('platform handle quickAccess lastSynced')
+      .select('platform handle quickAccess lastSynced isVerified verifiedAt')
       .lean();
 
     const linkedPlatforms = platformData.map(platform => ({
@@ -21,7 +21,9 @@ export async function getLinkedPlatforms(req, res) {
       rank: platform.quickAccess.rank || '',
       totalSolved: platform.quickAccess.totalSolved || 0,
       profileUrl: platform.quickAccess.profileUrl || '',
-      lastSynced: platform.lastSynced
+      lastSynced: platform.lastSynced,
+      isVerified: platform.isVerified || false,
+      verifiedAt: platform.verifiedAt || null
     }));
 
     res.json({
