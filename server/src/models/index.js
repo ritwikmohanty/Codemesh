@@ -3,4 +3,6 @@ export { default as Contest } from './Contest.js';
 export { default as PlatformData } from './PlatformData.js';
 export { default as PlatformSubmission } from './PlatformSubmission.js';
 export { default as PlatformRatingHistory } from './PlatformRatingHistory.js';
+export { default as Battle } from './Battle.js';
+export { default as BattleSubmission } from './BattleSubmission.js';
 

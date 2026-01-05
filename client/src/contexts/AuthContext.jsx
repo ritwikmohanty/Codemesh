@@ -151,6 +151,17 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: 'UPDATE_USER', payload: userData });
   };
 
+  const refreshProfile = async () => {
+    try {
+      const response = await api.auth.getProfile();
+      if (response.user) {
+        dispatch({ type: 'UPDATE_USER', payload: response.user });
+      }
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -161,6 +172,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         clearError,
         updateUser,
+        refreshProfile,
       }}
     >
       {children}

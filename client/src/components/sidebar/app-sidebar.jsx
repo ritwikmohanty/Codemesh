@@ -18,7 +18,8 @@ import {
   IconTrophy,
   IconCalendarEvent,
   IconHome,
-  IconFileStarFilled
+  IconFileStarFilled,
+  IconSwords,
 } from "@tabler/icons-react"
 import { NavMain } from "@/components/sidebar/nav-main"
 import { NavSecondary } from "@/components/sidebar/nav-secondary"
@@ -103,9 +104,9 @@ const data = {
       icon: IconTrophy,
     },
     {
-      title: "Practice",
-      url: "#",
-      icon: IconUsers,
+      title: "Battle",
+      url: "/battles",
+      icon: IconSwords,
     },
   ],
   navClouds: [

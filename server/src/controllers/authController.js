@@ -169,6 +169,24 @@ export const signin = async (req, res) => {
 
 export const getProfile = async (req, res) => {
   try {
+    // Fetch verified platforms from PlatformData
+    const PlatformData = (await import('../models/PlatformData.js')).default;
+    const platformData = await PlatformData.find({ 
+      user: req.user._id, 
+      isActive: true 
+    })
+      .select('platform handle isVerified verifiedAt')
+      .lean();
+
+    // Map verified platforms with their handles
+    const verifiedPlatforms = platformData
+      .filter(p => p.isVerified)
+      .map(p => ({
+        platform: p.platform,
+        handle: p.handle,
+        verifiedAt: p.verifiedAt
+      }));
+
     const userData = {
       id: req.user._id,
       name: req.user.name,
@@ -177,7 +195,8 @@ export const getProfile = async (req, res) => {
       avatarUrl: req.user.avatarUrl,
       isEmailVerified: req.user.isEmailVerified,
       onboardingCompleted: req.user.onboardingCompleted,
-      createdAt: req.user.createdAt
+      createdAt: req.user.createdAt,
+      verifiedPlatforms: verifiedPlatforms
     };
 
     res.json({ user: userData });

@@ -340,6 +340,17 @@ const Settings = () => {
             : p
         ));
         
+        // Update user in AuthContext to include the newly verified platform
+        const updatedVerifiedPlatforms = [
+          ...(user.verifiedPlatforms || []).filter(p => p.platform !== verificationModal.platform),
+          {
+            platform: response.data.platform,
+            handle: response.data.handle,
+            verifiedAt: response.data.verifiedAt
+          }
+        ];
+        updateUser({ verifiedPlatforms: updatedVerifiedPlatforms });
+        
         setTimeout(() => setPlatformMessage({ type: '', text: '' }), 3000);
       }
     } catch (error) {

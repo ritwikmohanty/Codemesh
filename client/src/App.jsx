@@ -9,6 +9,10 @@ import { ThemeProvider } from "./components/ui/theme-provider"
 import Portfolio from './Pages/Portfolio'
 import Leaderboard from './Pages/LeaderboardPage'
 import Settings from './Pages/Settings'
+import BattlesPage from './Pages/BattlesPage'
+import CreateBattlePage from './Pages/CreateBattlePage'
+import JoinBattlePage from './Pages/JoinBattlePage'
+import BattlePage from './Pages/BattlePage'
 import { Toaster } from 'sonner'
 
 const App = () => {
@@ -28,6 +32,11 @@ const App = () => {
                         <Route path="/portfolio/:username" element={<Portfolio />} />
                         <Route path="/leaderboard" element={<Leaderboard />} />
                         <Route path="/settings" element={<Settings />} />
+                        <Route path="/battles" element={<BattlesPage />} />
+                        <Route path="/battles/create" element={<CreateBattlePage />} />
+                        <Route path="/battles/join" element={<JoinBattlePage />} />
+                        <Route path="/battles/join/:joinToken" element={<JoinBattlePage />} />
+                        <Route path="/battle/:battleId" element={<BattlePage />} />
                     </Routes>
                 </OnboardingWrapper>
                 <Toaster 

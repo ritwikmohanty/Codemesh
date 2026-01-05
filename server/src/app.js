@@ -13,6 +13,8 @@ import './models/Contest.js';
 import './models/PlatformData.js';
 import './models/PlatformSubmission.js';
 import './models/PlatformRatingHistory.js';
+import './models/Battle.js';
+import './models/BattleSubmission.js';
 
 // Import passport AFTER dotenv.config()
 import passport from "./config/passport.js";
@@ -26,11 +28,13 @@ import platformRoutes from './routes/platformRoutes.js';
 import leaderboardRoutes from './routes/leaderboardRoutes.js';
 import onboardingRoutes from './routes/onboardingRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import battleRoutes from './routes/battleRoutes.js';
 
 // Import schedulers
 import { startContestScheduler } from './schedulers/contestScheduler.js';
 import { startNotificationScheduler } from './schedulers/notificationScheduler.js';
 import { startLeaderboardScheduler } from './schedulers/leaderboardScheduler.js';
+import { startBattleScheduler } from './schedulers/battleScheduler.js';
 
 const app = express();
 
@@ -119,6 +123,7 @@ try {
   app.use('/api/v1', leaderboardRoutes);
   app.use('/api/v1', onboardingRoutes);
   app.use('/api/v1', userRoutes);
+  app.use('/api/v1', battleRoutes);
 } catch (routeErr) {
   console.error('Route registration error:', routeErr);
   throw routeErr;
@@ -148,6 +153,7 @@ mongoose.connect(process.env.MONGO_URI)
       startContestScheduler();
       startNotificationScheduler();
       startLeaderboardScheduler();
+      startBattleScheduler();
     });
   })
   .catch(err => console.error("MongoDB connection error:", err));
