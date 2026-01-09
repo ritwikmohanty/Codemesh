@@ -1,4 +1,5 @@
 import BattleService from '../services/battle/BattleService.js';
+import Battle from '../models/Battle.js';
 
 const battleService = new BattleService();
 
@@ -8,18 +9,85 @@ const battleService = new BattleService();
  */
 
 /**
+ * Get battle info by join token (to check platform requirements before joining)
+ * GET /api/v1/battles/info/:joinToken
+ */
+export async function getBattleByJoinToken(req, res) {
+  try {
+    const { joinToken } = req.params;
+
+    if (!joinToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Join token is required'
+      });
+    }
+
+    const battle = await Battle.findOne({ joinToken })
+      .select('title platforms status startTime durationMinutes')
+      .lean();
+
+    if (!battle) {
+      return res.status(404).json({
+        success: false,
+        message: 'Battle not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        title: battle.title,
+        platforms: battle.platforms || ['codeforces'],
+        status: battle.status,
+        startTime: battle.startTime,
+        durationMinutes: battle.durationMinutes
+      }
+    });
+
+  } catch (error) {
+    console.error('Get battle by token error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get battle info'
+    });
+  }
+}
+
+/**
  * Create a new battle
  * POST /api/v1/battles
  */
 export async function createBattle(req, res) {
   try {
-    const { title, startTime, durationMinutes, minRating, maxRating, numProblems } = req.body;
+    const { 
+      title, 
+      startTime, 
+      durationMinutes, 
+      minRating, 
+      maxRating, 
+      numProblems,
+      platforms,
+      leetcodeDifficulty,
+      problemsPerPlatform
+    } = req.body;
 
     // Validate required fields
-    if (!title || !startTime || !durationMinutes || !minRating || !maxRating || !numProblems) {
+    if (!title || !startTime || !durationMinutes || !numProblems) {
       return res.status(400).json({
         success: false,
-        message: 'All fields are required: title, startTime, durationMinutes, minRating, maxRating, numProblems'
+        message: 'Required fields: title, startTime, durationMinutes, numProblems'
+      });
+    }
+
+    // Validate platforms
+    const selectedPlatforms = platforms || ['codeforces'];
+    
+    // If codeforces is selected, rating range is required
+    if (selectedPlatforms.includes('codeforces') && (!minRating || !maxRating)) {
+      return res.status(400).json({
+        success: false,
+        message: 'minRating and maxRating are required when Codeforces is selected'
       });
     }
 
@@ -27,9 +95,12 @@ export async function createBattle(req, res) {
       title,
       startTime,
       durationMinutes: parseInt(durationMinutes, 10),
-      minRating: parseInt(minRating, 10),
-      maxRating: parseInt(maxRating, 10),
-      numProblems: parseInt(numProblems, 10)
+      minRating: minRating ? parseInt(minRating, 10) : 800,
+      maxRating: maxRating ? parseInt(maxRating, 10) : 1400,
+      numProblems: parseInt(numProblems, 10),
+      platforms: selectedPlatforms,
+      leetcodeDifficulty: leetcodeDifficulty || ['Easy', 'Medium'],
+      problemsPerPlatform
     });
 
     res.status(201).json({
@@ -37,7 +108,8 @@ export async function createBattle(req, res) {
       message: 'Battle created successfully',
       data: {
         battleId: battle._id,
-        joinToken: battle.joinToken
+        joinToken: battle.joinToken,
+        platforms: battle.platforms
       }
     });
 
@@ -65,14 +137,15 @@ export async function joinBattle(req, res) {
       });
     }
 
-    const { battle, alreadyJoined } = await battleService.joinBattle(joinToken, req.user);
+    const { battle, alreadyJoined, platforms } = await battleService.joinBattle(joinToken, req.user);
 
     res.json({
       success: true,
       message: alreadyJoined ? 'You are already in this battle' : 'Successfully joined the battle',
       data: {
         battleId: battle._id,
-        alreadyJoined
+        alreadyJoined,
+        platforms: platforms || battle.platforms || ['codeforces']
       }
     });
 
@@ -191,12 +264,22 @@ export async function getBattleStandings(req, res) {
   try {
     const { id } = req.params;
 
-    const standings = await battleService.getBattleStandings(id, req.user._id);
+    const result = await battleService.getBattleStandings(id, req.user._id);
 
-    res.json({
-      success: true,
-      data: standings
-    });
+    // Handle both old array format and new object format
+    if (Array.isArray(result)) {
+      res.json({
+        success: true,
+        data: result,
+        problemStats: {}
+      });
+    } else {
+      res.json({
+        success: true,
+        data: result.standings,
+        problemStats: result.problemStats
+      });
+    }
 
   } catch (error) {
     console.error('Get battle standings error:', error);
@@ -348,4 +431,28 @@ export async function getServerTime(req, res) {
       serverTime: Date.now()
     }
   });
+}
+
+/**
+ * Check if user has synced LeetCode submissions (via CP Extension)
+ * GET /api/v1/battles/check-leetcode-sync
+ */
+export async function checkLeetCodeSyncStatus(req, res) {
+  try {
+    const hasSynced = await battleService.checkUserLeetCodeSync(req.user);
+
+    res.json({
+      success: true,
+      data: {
+        hasSynced
+      }
+    });
+
+  } catch (error) {
+    console.error('Check LeetCode sync error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check LeetCode sync status'
+    });
+  }
 }

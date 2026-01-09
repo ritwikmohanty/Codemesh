@@ -3,13 +3,16 @@ import BattleSubmission from '../../models/BattleSubmission.js';
 import User from '../../models/User.js';
 import PlatformData from '../../models/PlatformData.js';
 import CodeforcesService from '../platform/CodeforcesServiceV2.js';
+import LeetCodeBattleService from './LeetCodeBattleService.js';
 import { nanoid } from 'nanoid';
 
 const codeforcesService = new CodeforcesService();
+const leetcodeBattleService = new LeetCodeBattleService();
 
 /**
  * Battle Service
  * Handles all battle-related business logic
+ * Supports both Codeforces and LeetCode platforms
  */
 class BattleService {
   constructor() {
@@ -25,7 +28,16 @@ class BattleService {
    * @returns {Promise<Object>} Created battle
    */
   async createBattle(user, details) {
-    const { title, startTime, durationMinutes, minRating, maxRating, numProblems } = details;
+    const { 
+      title, 
+      startTime, 
+      durationMinutes, 
+      minRating, 
+      maxRating, 
+      numProblems,
+      platforms = ['codeforces'],
+      leetcodeDifficulty = ['Easy', 'Medium']
+    } = details;
 
     // Validate start time is in the future
     const startTimeDate = new Date(startTime);
@@ -38,13 +50,27 @@ class BattleService {
       throw new Error('Duration must be between 10 and 300 minutes');
     }
 
-    // Validate rating range
-    if (minRating > maxRating) {
-      throw new Error('Minimum rating cannot be greater than maximum rating');
+    // Validate platforms
+    if (!platforms || platforms.length === 0) {
+      throw new Error('At least one platform must be selected');
     }
 
-    if (minRating < 800 || maxRating > 3500) {
-      throw new Error('Rating must be between 800 and 3500');
+    // Validate Codeforces-specific settings
+    if (platforms.includes('codeforces')) {
+      if (minRating > maxRating) {
+        throw new Error('Minimum rating cannot be greater than maximum rating');
+      }
+
+      if (minRating < 800 || maxRating > 3500) {
+        throw new Error('Rating must be between 800 and 3500');
+      }
+    }
+
+    // Validate LeetCode-specific settings
+    if (platforms.includes('leetcode')) {
+      if (!leetcodeDifficulty || leetcodeDifficulty.length === 0) {
+        throw new Error('At least one LeetCode difficulty must be selected');
+      }
     }
 
     // Validate problem count
@@ -52,10 +78,40 @@ class BattleService {
       throw new Error('Number of problems must be between 1 and 10');
     }
 
-    // Get user's verified Codeforces handle
-    const codeforcesHandle = await this.getUserCodeforcesHandle(user);
-    if (!codeforcesHandle) {
-      throw new Error('You must link and verify your Codeforces account before creating a battle');
+    // Get user's verified platform handles
+    const codeforcesHandle = platforms.includes('codeforces') 
+      ? await this.getUserCodeforcesHandle(user) 
+      : null;
+    const leetcodeHandle = platforms.includes('leetcode')
+      ? await this.getUserLeetCodeHandle(user)
+      : null;
+
+    // Validate required platforms
+    if (platforms.includes('codeforces') && !codeforcesHandle) {
+      throw new Error('You must link and verify your Codeforces account before creating a battle with Codeforces');
+    }
+    
+    if (platforms.includes('leetcode') && !leetcodeHandle) {
+      throw new Error('You must link and verify your LeetCode account before creating a battle with LeetCode');
+    }
+
+    // Check LeetCode sync status if LeetCode is selected
+    if (platforms.includes('leetcode')) {
+      const hasSynced = await leetcodeBattleService.hasUserSyncedSubmissions(leetcodeHandle);
+      if (!hasSynced) {
+        throw new Error('You must sync your LeetCode submissions using the CP Focus extension before creating a battle with LeetCode');
+      }
+    }
+
+    // Calculate problems per platform
+    const problemsPerPlatform = {};
+    const platformCount = platforms.length;
+    const baseCount = Math.floor(numProblems / platformCount);
+    let remainder = numProblems % platformCount;
+    
+    for (const platform of platforms) {
+      problemsPerPlatform[platform] = baseCount + (remainder > 0 ? 1 : 0);
+      if (remainder > 0) remainder--;
     }
 
     // Generate unique join token
@@ -67,13 +123,17 @@ class BattleService {
       createdBy: user._id,
       startTime: startTimeDate,
       durationMinutes,
-      minRating,
-      maxRating,
+      platforms,
+      minRating: minRating || 800,
+      maxRating: maxRating || 1400,
+      leetcodeDifficulty,
       numProblems,
+      problemsPerPlatform,
       joinToken,
       participants: [{
         user: user._id,
         codeforcesHandle,
+        leetcodeHandle,
         joinedAt: new Date()
       }]
     });
@@ -99,32 +159,54 @@ class BattleService {
     if (battle.status !== 'pending') {
       // If already a participant, allow them to view the battle even if started
       if (battle.isParticipant(user._id)) {
-        return { battle, alreadyJoined: true };
+        return { battle, alreadyJoined: true, platforms: battle.platforms };
       }
       throw new Error('You can only join battles that have not started yet');
     }
 
     // Check if user is already a participant
     if (battle.isParticipant(user._id)) {
-      return { battle, alreadyJoined: true };
+      return { battle, alreadyJoined: true, platforms: battle.platforms };
     }
 
-    // Get user's verified Codeforces handle
-    const codeforcesHandle = await this.getUserCodeforcesHandle(user);
-    if (!codeforcesHandle) {
-      throw new Error('You must link and verify your Codeforces account before joining a battle');
+    const platforms = battle.platforms || ['codeforces'];
+
+    // Get user's verified platform handles based on battle platforms
+    const codeforcesHandle = platforms.includes('codeforces') 
+      ? await this.getUserCodeforcesHandle(user)
+      : null;
+    const leetcodeHandle = platforms.includes('leetcode')
+      ? await this.getUserLeetCodeHandle(user)
+      : null;
+
+    // Validate required platforms
+    if (platforms.includes('codeforces') && !codeforcesHandle) {
+      throw new Error('You must link and verify your Codeforces account before joining this battle');
+    }
+
+    if (platforms.includes('leetcode') && !leetcodeHandle) {
+      throw new Error('You must link and verify your LeetCode account before joining this battle');
+    }
+
+    // Check LeetCode sync status if LeetCode is selected
+    if (platforms.includes('leetcode')) {
+      const hasSynced = await leetcodeBattleService.hasUserSyncedSubmissions(leetcodeHandle);
+      if (!hasSynced) {
+        throw new Error('You must sync your LeetCode submissions using the CP Focus extension before joining this battle. Please ensure you have at least one submission synced.');
+      }
     }
 
     // Add user as participant
     battle.participants.push({
       user: user._id,
       codeforcesHandle,
+      leetcodeHandle,
       joinedAt: new Date()
     });
 
     await battle.save();
 
-    return { battle, alreadyJoined: false };
+    return { battle, alreadyJoined: false, platforms };
   }
 
   /**
@@ -146,6 +228,40 @@ class BattleService {
       console.error('Error fetching Codeforces handle:', error);
       return null;
     }
+  }
+
+  /**
+   * Get user's LeetCode handle from PlatformData (verified platforms only)
+   * @param {Object} user - The user object
+   * @returns {Promise<string|null>} LeetCode handle or null
+   */
+  async getUserLeetCodeHandle(user) {
+    try {
+      const platformData = await PlatformData.findOne({
+        user: user._id,
+        platform: 'leetcode',
+        isActive: true,
+        isVerified: true
+      }).select('handle').lean();
+
+      return platformData?.handle || null;
+    } catch (error) {
+      console.error('Error fetching LeetCode handle:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if user has synced LeetCode submissions via CP Extension
+   * @param {Object} user - The user object
+   * @returns {Promise<boolean>} True if user has synced submissions
+   */
+  async checkUserLeetCodeSync(user) {
+    const leetcodeHandle = await this.getUserLeetCodeHandle(user);
+    if (!leetcodeHandle) {
+      return false;
+    }
+    return leetcodeBattleService.hasUserSyncedSubmissions(leetcodeHandle);
   }
 
   /**
@@ -242,25 +358,60 @@ class BattleService {
       throw new Error('Battle has already started or completed');
     }
 
-    // Get all participant handles
-    const participantHandles = battle.participants.map(p => p.codeforcesHandle);
+    const platforms = battle.platforms || ['codeforces'];
+    let allProblems = [];
 
-    // Choose problems that participants haven't solved
-    const problems = await this.chooseProblems(
-      battle.minRating,
-      battle.maxRating,
-      battle.numProblems,
-      participantHandles
-    );
+    // Choose problems from each platform
+    if (platforms.includes('codeforces')) {
+      const cfHandles = battle.participants
+        .map(p => p.codeforcesHandle)
+        .filter(h => h);
+      
+      const cfProblems = await this.chooseCodeforcesProblems(
+        battle.minRating,
+        battle.maxRating,
+        battle.problemsPerPlatform?.codeforces || Math.ceil(battle.numProblems / platforms.length),
+        cfHandles
+      );
+      allProblems = allProblems.concat(cfProblems);
+    }
+
+    if (platforms.includes('leetcode')) {
+      const lcHandles = battle.participants
+        .map(p => p.leetcodeHandle)
+        .filter(h => h);
+      
+      const lcProblems = await leetcodeBattleService.chooseProblems(
+        battle.leetcodeDifficulty || ['Easy', 'Medium'],
+        battle.problemsPerPlatform?.leetcode || Math.floor(battle.numProblems / platforms.length),
+        lcHandles
+      );
+      allProblems = allProblems.concat(lcProblems);
+    }
 
     // Update battle with problems and start
-    battle.problems = problems.map(p => ({
-      contestId: p.contestId,
-      index: p.index,
-      name: p.name,
-      rating: p.rating,
-      addedAt: new Date()
-    }));
+    battle.problems = allProblems.map(p => {
+      if (p.platform === 'leetcode') {
+        return {
+          platform: 'leetcode',
+          titleSlug: p.titleSlug,
+          title: p.title,
+          name: p.name || p.title,
+          difficulty: p.difficulty,
+          frontendId: p.frontendId,
+          addedAt: new Date()
+        };
+      } else {
+        return {
+          platform: 'codeforces',
+          contestId: p.contestId,
+          index: p.index,
+          name: p.name,
+          rating: p.rating,
+          addedAt: new Date()
+        };
+      }
+    });
     battle.status = 'in_progress';
     battle.startTime = new Date(); // Update start time to now
 
@@ -329,7 +480,7 @@ class BattleService {
    * Get battle standings
    * @param {string} battleId - The battle ID
    * @param {string} userId - The requesting user's ID
-   * @returns {Promise<Array>} Standings
+   * @returns {Promise<Object>} Standings with problem stats
    */
   async getBattleStandings(battleId, userId) {
     const battle = await this.getBattle(battleId, userId);
@@ -341,71 +492,121 @@ class BattleService {
     const submissions = await BattleSubmission.find({ battle: battleId }).lean();
 
     const standings = [];
+    
+    // Track solve counts per problem
+    const problemSolveCount = {};
+    
+    // Initialize problem solve counts
+    for (const problem of battle.problems) {
+      const isLeetCode = problem.platform === 'leetcode';
+      const problemKey = isLeetCode 
+        ? problem.titleSlug 
+        : `${problem.contestId}${problem.index}`;
+      problemSolveCount[problemKey] = 0;
+    }
 
     for (const participant of battle.participants) {
+      const participantUserId = participant.user._id ? participant.user._id.toString() : participant.user.toString();
+      
       const userSubmissions = submissions.filter(
-        s => s.user.toString() === participant.user._id.toString()
+        s => s.user.toString() === participantUserId
       );
+
+
 
       let solved = 0;
       let penalty = 0;
       const problemData = {};
 
       for (const problem of battle.problems) {
-        const problemSubmissions = userSubmissions.filter(
-          s => s.contestId === problem.contestId && s.problemIndex === problem.index
-        );
+        const isLeetCode = problem.platform === 'leetcode';
+        const problemKey = isLeetCode 
+          ? problem.titleSlug 
+          : `${problem.contestId}${problem.index}`;
+
+        // Filter submissions for this problem
+        const problemSubmissions = userSubmissions.filter(s => {
+          if (isLeetCode) {
+            return s.titleSlug === problem.titleSlug;
+          } else {
+            return s.contestId === problem.contestId && s.problemIndex === problem.index;
+          }
+        });
+
+
 
         // Sort by submission time
         const sortedSubmissions = problemSubmissions.sort(
           (a, b) => new Date(a.submittedAt) - new Date(b.submittedAt)
         );
 
-        const correctSubmission = sortedSubmissions.find(s => s.verdict === 'OK');
+        // Check for accepted submission (different verdict for each platform)
+        const correctSubmission = sortedSubmissions.find(s => 
+          isLeetCode ? s.verdict === 'Accepted' : s.verdict === 'OK'
+        );
 
         if (correctSubmission) {
-          const wrongBeforeCorrect = sortedSubmissions.filter(
-            s => s.verdict !== 'OK' && 
-                 new Date(s.submittedAt) < new Date(correctSubmission.submittedAt) &&
-                 s.passedTestCount > 0
-          );
+          // Count wrong submissions BEFORE the first correct one
+          const wrongBeforeCorrect = sortedSubmissions.filter(s => {
+            const subTime = new Date(s.submittedAt);
+            const correctTime = new Date(correctSubmission.submittedAt);
+            if (subTime >= correctTime) return false;
+            
+            if (isLeetCode) {
+              return s.verdict !== 'Accepted';
+            } else {
+              // For Codeforces, count all non-OK verdicts as wrong attempts
+              return s.verdict !== 'OK';
+            }
+          });
 
           solved++;
+          problemSolveCount[problemKey]++;
           
-          // Calculate penalty: time from start + 10 minutes per wrong submission
-          const timeDiff = Math.floor(
-            (new Date(correctSubmission.submittedAt) - new Date(battle.startTime)) / 60000
-          );
-          penalty += timeDiff + wrongBeforeCorrect.length * 10;
+          // ICPC style penalty: time from start (in minutes) + 20 minutes per wrong submission
+          const solveTimeMs = new Date(correctSubmission.submittedAt) - new Date(battle.startTime);
+          const solveTimeMinutes = Math.floor(solveTimeMs / 60000);
+          const wrongPenalty = wrongBeforeCorrect.length * 20;
+          penalty += solveTimeMinutes + wrongPenalty;
 
-          problemData[`${problem.contestId}${problem.index}`] = {
+
+
+          problemData[problemKey] = {
             solved: true,
             wrongSubmissions: wrongBeforeCorrect.length,
-            solveTimeMinutes: timeDiff
+            solveTimeMinutes: solveTimeMinutes,
+            penalty: solveTimeMinutes + wrongPenalty
           };
         } else {
-          const wrongSubmissions = problemSubmissions.filter(
-            s => s.verdict !== 'OK' && s.passedTestCount > 0
-          );
+          // Count all wrong submissions (for display purposes)
+          const wrongSubmissions = problemSubmissions.filter(s => {
+            if (isLeetCode) {
+              return s.verdict !== 'Accepted';
+            }
+            return s.verdict !== 'OK';
+          });
 
-          problemData[`${problem.contestId}${problem.index}`] = {
+          problemData[problemKey] = {
             solved: false,
             wrongSubmissions: wrongSubmissions.length,
-            solveTimeMinutes: 0
+            solveTimeMinutes: 0,
+            penalty: 0
           };
         }
       }
 
       standings.push({
+        odId: participant.user._id || participant.user,
         user: participant.user,
         codeforcesHandle: participant.codeforcesHandle,
+        leetcodeHandle: participant.leetcodeHandle,
         solved,
         penalty,
         problemData
       });
     }
 
-    // Sort by solved (descending), then by penalty (ascending)
+    // Sort by solved (descending), then by penalty (ascending) - ICPC style
     standings.sort((a, b) => {
       if (a.solved !== b.solved) {
         return b.solved - a.solved;
@@ -413,7 +614,13 @@ class BattleService {
       return a.penalty - b.penalty;
     });
 
-    return standings;
+
+
+    // Return standings along with problem solve counts
+    return {
+      standings,
+      problemStats: problemSolveCount
+    };
   }
 
   /**
@@ -456,22 +663,46 @@ class BattleService {
   }
 
   /**
-   * Poll submissions from Codeforces for all participants
+   * Poll submissions from all platforms for all participants
    * @param {Object} battle - The battle document
    */
   async pollSubmissions(battle) {
     console.log(`Polling submissions for battle ${battle._id}`);
 
+    const platforms = battle.platforms || ['codeforces'];
+    
+    // Poll Codeforces submissions
+    if (platforms.includes('codeforces')) {
+      await this.pollCodeforcesSubmissions(battle);
+    }
+    
+    // Poll LeetCode submissions
+    if (platforms.includes('leetcode')) {
+      await this.pollLeetCodeSubmissions(battle);
+    }
+  }
+
+  /**
+   * Poll Codeforces submissions for battle participants
+   * @param {Object} battle - The battle document
+   */
+  async pollCodeforcesSubmissions(battle) {
     const startTime = new Date(battle.startTime);
     const endTime = new Date(startTime.getTime() + battle.durationMinutes * 60 * 1000);
 
-    // Get existing submission IDs to avoid duplicates
-    const existingSubmissions = await BattleSubmission.find({ battle: battle._id })
-      .select('cfSubmissionId')
-      .lean();
-    const existingIds = new Set(existingSubmissions.map(s => s.cfSubmissionId));
+    // Get existing CF submission IDs to avoid duplicates
+    const existingSubmissions = await BattleSubmission.find({ 
+      battle: battle._id,
+      platform: 'codeforces'
+    }).select('submissionId').lean();
+    const existingIds = new Set(existingSubmissions.map(s => s.submissionId));
+
+    // Get CF problems for this battle
+    const cfProblems = battle.problems.filter(p => p.platform === 'codeforces' || !p.platform);
 
     for (const participant of battle.participants) {
+      if (!participant.codeforcesHandle) continue;
+      
       try {
         // Get user's recent submissions from Codeforces
         const cfSubmissions = await codeforcesService.getAllSubmissions(
@@ -489,7 +720,7 @@ class BattleService {
           }
 
           // Check if submission is for one of the battle problems
-          const isForBattleProblem = battle.problems.some(
+          const isForBattleProblem = cfProblems.some(
             p => p.contestId === sub.problem.contestId && p.index === sub.problem.index
           );
 
@@ -498,7 +729,7 @@ class BattleService {
           }
 
           // Check if we already have this submission
-          if (existingIds.has(sub.id.toString())) {
+          if (existingIds.has(`cf_${sub.id}`)) {
             return false;
           }
 
@@ -514,22 +745,15 @@ class BattleService {
           continue;
         }
 
-        // Get user ID for this participant from PlatformData
-        const platformData = await PlatformData.findOne({
-          platform: 'codeforces',
-          handle: participant.codeforcesHandle,
-          isActive: true
-        }).select('user').lean();
-
-        if (!platformData) {
-          console.warn(`User not found for handle ${participant.codeforcesHandle}`);
-          continue;
-        }
+        // Get the user ID - handle both populated and non-populated cases
+        const userId = participant.user._id ? participant.user._id : participant.user;
 
         // Create submission documents
         const newSubmissions = relevantSubmissions.map(sub => ({
           battle: battle._id,
-          user: platformData.user,
+          user: userId,
+          platform: 'codeforces',
+          submissionId: `cf_${sub.id}`,
           cfSubmissionId: sub.id.toString(),
           contestId: sub.problem.contestId,
           problemIndex: sub.problem.index,
@@ -540,27 +764,148 @@ class BattleService {
           rawData: sub
         }));
 
+        console.log(`[Poll CF] Creating ${newSubmissions.length} submissions for user ${userId}, handle: ${participant.codeforcesHandle}`);
+
         if (newSubmissions.length > 0) {
-          await BattleSubmission.insertMany(newSubmissions, { ordered: false });
-          console.log(`Inserted ${newSubmissions.length} submissions for ${participant.codeforcesHandle}`);
+          await BattleSubmission.insertMany(newSubmissions, { ordered: false }).catch(err => {
+            // Ignore duplicate key errors
+            if (err.code !== 11000) throw err;
+          });
+          console.log(`Inserted ${newSubmissions.length} CF submissions for ${participant.codeforcesHandle}`);
         }
 
       } catch (error) {
-        console.error(`Error polling submissions for ${participant.codeforcesHandle}:`, error.message);
-        // Continue with other participants
+        console.error(`Error polling CF submissions for ${participant.codeforcesHandle}:`, error.message);
       }
     }
   }
 
   /**
-   * Choose random problems that haven't been solved by participants
+   * Poll LeetCode submissions for battle participants
+   * Uses the recentSubmissionList GraphQL query for recent 20 submissions
+   * @param {Object} battle - The battle document
+   */
+  async pollLeetCodeSubmissions(battle) {
+    const startTime = new Date(battle.startTime);
+    const endTime = new Date(startTime.getTime() + battle.durationMinutes * 60 * 1000);
+
+    // Get LC problems for this battle
+    const lcProblems = battle.problems.filter(p => p.platform === 'leetcode');
+    const lcProblemSlugs = new Set(lcProblems.map(p => p.titleSlug));
+
+
+
+    for (const participant of battle.participants) {
+      const leetcodeHandle = participant.leetcodeHandle;
+      
+      // Skip if no leetcode handle
+      if (!leetcodeHandle) {
+        continue;
+      }
+      
+      // Get the user ID - handle both populated and non-populated cases
+      const userId = participant.user._id ? participant.user._id : participant.user;
+      
+      try {
+        // Get user's recent submissions from LeetCode (last 20)
+        const lcSubmissions = await leetcodeBattleService.getRecentSubmissions(
+          leetcodeHandle,
+          20
+        );
+
+
+
+        // Filter submissions for this battle's problems and time range
+        const relevantSubmissions = [];
+        
+        for (const sub of lcSubmissions) {
+          // Skip submissions with error status from LeetCode API
+          if (sub.statusDisplay === 'Internal Error' || !sub.statusDisplay) {
+            continue;
+          }
+          
+          const subTime = new Date(parseInt(sub.timestamp) * 1000);
+          
+          // Check if submission is within battle time range
+          if (subTime < startTime || subTime > endTime) {
+            continue;
+          }
+
+          // Check if submission is for one of the battle problems
+          if (!lcProblemSlugs.has(sub.titleSlug)) {
+            continue;
+          }
+
+          // Create unique ID: lc_{handle}_{titleSlug}_{timestamp}
+          // This format ensures uniqueness per user per problem per submission time
+          const submissionId = `lc_${leetcodeHandle}_${sub.titleSlug}_${sub.timestamp}`;
+
+          relevantSubmissions.push({
+            ...sub,
+            _generatedSubmissionId: submissionId
+          });
+        }
+
+        if (relevantSubmissions.length === 0) {
+          continue;
+        }
+
+
+
+        // Use bulkWrite with upsert to handle both new insertions and updates
+        const bulkOps = relevantSubmissions.map(sub => ({
+          updateOne: {
+            filter: { 
+              battle: battle._id, 
+              submissionId: sub._generatedSubmissionId 
+            },
+            update: {
+              $set: {
+                user: userId,
+                platform: 'leetcode',
+                submissionId: sub._generatedSubmissionId,
+                titleSlug: sub.titleSlug,
+                verdict: sub.statusDisplay,
+                programmingLanguage: sub.lang || '',
+                submittedAt: new Date(parseInt(sub.timestamp) * 1000),
+                rawData: {
+                  title: sub.title,
+                  titleSlug: sub.titleSlug,
+                  timestamp: sub.timestamp,
+                  statusDisplay: sub.statusDisplay,
+                  lang: sub.lang
+                }
+              },
+              $setOnInsert: {
+                battle: battle._id,
+                createdAt: new Date()
+              }
+            },
+            upsert: true
+          }
+        }));
+
+        try {
+          await BattleSubmission.bulkWrite(bulkOps, { ordered: false });
+        } catch (err) {
+          console.error(`[Poll LC] BulkWrite error for ${leetcodeHandle}:`, err.message);
+        }
+
+      } catch (error) {
+        console.error(`[Poll LC] Error polling submissions for ${leetcodeHandle}:`, error.message);
+      }
+    }
+  }
+
+  /**
+   * Choose random Codeforces problems that haven't been solved by participants
    * @param {number} minRating - Minimum problem rating
    * @param {number} maxRating - Maximum problem rating
    * @param {number} count - Number of problems to select
    * @param {Array<string>} handles - Participant Codeforces handles
    * @returns {Promise<Array>} Selected problems
    */
-  async chooseProblems(minRating, maxRating, count, handles) {
+  async chooseCodeforcesProblems(minRating, maxRating, count, handles) {
     // Get all problems from Codeforces
     const allProblems = await this.getProblemsWithCache();
 
@@ -610,9 +955,15 @@ class BattleService {
       throw new Error(`Not enough eligible problems found. Found ${eligibleProblems.length}, need ${count}`);
     }
 
-    // Shuffle and select
+    // Shuffle and select, add platform field
     const shuffled = eligibleProblems.sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
+    return shuffled.slice(0, count).map(p => ({
+      platform: 'codeforces',
+      contestId: p.contestId,
+      index: p.index,
+      name: p.name,
+      rating: p.rating
+    }));
   }
 
   /**
@@ -680,26 +1031,63 @@ class BattleService {
     try {
       console.log(`Auto-starting battle ${battle._id}: ${battle.title}`);
 
-      const participantHandles = battle.participants.map(p => p.codeforcesHandle);
+      const platforms = battle.platforms || ['codeforces'];
+      let allProblems = [];
 
-      const problems = await this.chooseProblems(
-        battle.minRating,
-        battle.maxRating,
-        battle.numProblems,
-        participantHandles
-      );
+      // Choose problems from each platform
+      if (platforms.includes('codeforces')) {
+        const cfHandles = battle.participants
+          .map(p => p.codeforcesHandle)
+          .filter(h => h);
+        
+        const cfProblems = await this.chooseCodeforcesProblems(
+          battle.minRating,
+          battle.maxRating,
+          battle.problemsPerPlatform?.codeforces || Math.ceil(battle.numProblems / platforms.length),
+          cfHandles
+        );
+        allProblems = allProblems.concat(cfProblems);
+      }
 
-      battle.problems = problems.map(p => ({
-        contestId: p.contestId,
-        index: p.index,
-        name: p.name,
-        rating: p.rating,
-        addedAt: new Date()
-      }));
+      if (platforms.includes('leetcode')) {
+        const lcHandles = battle.participants
+          .map(p => p.leetcodeHandle)
+          .filter(h => h);
+        
+        const lcProblems = await leetcodeBattleService.chooseProblems(
+          battle.leetcodeDifficulty || ['Easy', 'Medium'],
+          battle.problemsPerPlatform?.leetcode || Math.floor(battle.numProblems / platforms.length),
+          lcHandles
+        );
+        allProblems = allProblems.concat(lcProblems);
+      }
+
+      battle.problems = allProblems.map(p => {
+        if (p.platform === 'leetcode') {
+          return {
+            platform: 'leetcode',
+            titleSlug: p.titleSlug,
+            title: p.title,
+            name: p.name || p.title,
+            difficulty: p.difficulty,
+            frontendId: p.frontendId,
+            addedAt: new Date()
+          };
+        } else {
+          return {
+            platform: 'codeforces',
+            contestId: p.contestId,
+            index: p.index,
+            name: p.name,
+            rating: p.rating,
+            addedAt: new Date()
+          };
+        }
+      });
       battle.status = 'in_progress';
 
       await battle.save();
-      console.log(`Battle ${battle._id} started successfully`);
+      console.log(`Battle ${battle._id} started successfully with ${allProblems.length} problems`);
 
     } catch (error) {
       console.error(`Failed to auto-start battle ${battle._id}:`, error.message);

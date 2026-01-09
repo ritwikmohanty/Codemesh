@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { IconArrowLeft, IconLink } from '@tabler/icons-react';
-import { joinBattle } from '@/services/battleService';
+import { Badge } from '@/components/ui/badge';
+import { IconArrowLeft, IconLink, IconCode, IconBrandLeetcode, IconAlertCircle } from '@tabler/icons-react';
+import { joinBattle, getBattleByJoinToken } from '@/services/battleService';
 import { toast } from 'sonner';
 
 const JoinBattlePage = () => {
@@ -18,16 +19,27 @@ const JoinBattlePage = () => {
   
   const [joinToken, setJoinToken] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingBattle, setIsCheckingBattle] = useState(false);
   const [error, setError] = useState('');
   const [autoJoinAttempted, setAutoJoinAttempted] = useState(false);
+  const [battleInfo, setBattleInfo] = useState(null);
+  const [missingPlatforms, setMissingPlatforms] = useState([]);
 
-  // Check for verified Codeforces handle - define early for use in effects
+  // Check for verified handles
   const hasCodeforcesHandle = user?.verifiedPlatforms?.some(
     p => p.platform === 'codeforces'
   );
   
+  const hasLeetcodeHandle = user?.verifiedPlatforms?.some(
+    p => p.platform === 'leetcode'
+  );
+  
   const codeforcesHandle = user?.verifiedPlatforms?.find(
     p => p.platform === 'codeforces'
+  )?.handle;
+  
+  const leetcodeHandle = user?.verifiedPlatforms?.find(
+    p => p.platform === 'leetcode'
   )?.handle;
 
   // Refresh profile to ensure verifiedPlatforms are up-to-date
@@ -47,14 +59,43 @@ const JoinBattlePage = () => {
     }
   }, [searchParams, urlToken]);
 
-  // Auto-join if token is present in URL and user is authenticated with verified CF handle
+  // Check battle platforms when token is available
   useEffect(() => {
-    // Only auto-join if we have a URL token (not manually entered)
-    if (urlToken && isAuthenticated && !authLoading && hasCodeforcesHandle && !autoJoinAttempted && !isSubmitting) {
-      setAutoJoinAttempted(true);
-      handleAutoJoin(urlToken);
+    if (urlToken && isAuthenticated && !authLoading && !isCheckingBattle && !battleInfo) {
+      checkBattlePlatforms(urlToken);
     }
-  }, [urlToken, isAuthenticated, authLoading, hasCodeforcesHandle, autoJoinAttempted, isSubmitting]);
+  }, [urlToken, isAuthenticated, authLoading, battleInfo]);
+
+  const checkBattlePlatforms = async (token) => {
+    setIsCheckingBattle(true);
+    try {
+      const response = await getBattleByJoinToken(token);
+      setBattleInfo(response.data);
+      
+      const platforms = response.data.platforms || ['codeforces'];
+      const missing = [];
+      
+      if (platforms.includes('codeforces') && !hasCodeforcesHandle) {
+        missing.push('codeforces');
+      }
+      if (platforms.includes('leetcode') && !hasLeetcodeHandle) {
+        missing.push('leetcode');
+      }
+      
+      setMissingPlatforms(missing);
+      
+      // If no missing platforms, auto-join
+      if (missing.length === 0 && !autoJoinAttempted) {
+        setAutoJoinAttempted(true);
+        handleAutoJoin(token);
+      }
+    } catch (err) {
+      console.error('Error checking battle:', err);
+      setError(err.response?.data?.message || 'Failed to get battle info');
+    } finally {
+      setIsCheckingBattle(false);
+    }
+  };
 
   const handleAutoJoin = async (token) => {
     setIsSubmitting(true);
@@ -87,6 +128,26 @@ const JoinBattlePage = () => {
     setError('');
     
     try {
+      // First check battle info if not already checked
+      if (!battleInfo) {
+        const infoResponse = await getBattleByJoinToken(joinToken.trim());
+        const platforms = infoResponse.data.platforms || ['codeforces'];
+        const missing = [];
+        
+        if (platforms.includes('codeforces') && !hasCodeforcesHandle) {
+          missing.push('Codeforces');
+        }
+        if (platforms.includes('leetcode') && !hasLeetcodeHandle) {
+          missing.push('LeetCode');
+        }
+        
+        if (missing.length > 0) {
+          setError(`This battle requires ${missing.join(' and ')} verification. Please verify your ${missing.join(' and ')} account${missing.length > 1 ? 's' : ''} in Settings.`);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      
       const response = await joinBattle(joinToken.trim());
       if (response.data.alreadyJoined) {
         toast.info('You are already in this battle');
@@ -107,14 +168,19 @@ const JoinBattlePage = () => {
     e.preventDefault();
     handleJoin();
   };
+  
+  // Check if user has any verified platform
+  const hasAnyVerifiedPlatform = hasCodeforcesHandle || hasLeetcodeHandle;
 
-  // Show loading state during auto-join
-  if (urlToken && isSubmitting) {
+  // Show loading state during checking or auto-join
+  if ((urlToken && isCheckingBattle) || (urlToken && isSubmitting && !error)) {
     return (
       <AppSidebar variant="inset">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-pulse text-muted-foreground mb-2">Joining battle...</div>
+            <div className="animate-pulse text-muted-foreground mb-2">
+              {isCheckingBattle ? 'Checking battle requirements...' : 'Joining battle...'}
+            </div>
             <p className="text-sm text-muted-foreground">Please wait</p>
           </div>
         </div>
@@ -154,25 +220,63 @@ const JoinBattlePage = () => {
     );
   }
 
-  if (!hasCodeforcesHandle) {
+  // Show missing platforms error for URL token
+  if (urlToken && missingPlatforms.length > 0) {
+    const platformNames = missingPlatforms.map(p => p === 'codeforces' ? 'Codeforces' : 'LeetCode');
+    
     return (
       <AppSidebar variant="inset">
         <div className="flex-1 flex items-center justify-center p-6">
-          <Card className="max-w-md w-full">
+          <Card className="max-w-md w-full border-amber-500/50">
             <CardHeader className="text-center">
-              <CardTitle>Verified Codeforces Account Required</CardTitle>
-              <CardDescription>
-                You need to link and verify your Codeforces account before joining a battle.
+              <div className="flex justify-center mb-4">
+                <IconAlertCircle className="h-12 w-12 text-amber-500" />
+              </div>
+              <CardTitle>Platform Verification Required</CardTitle>
+              <CardDescription className="mt-2">
+                This battle requires {platformNames.join(' and ')} verification. 
+                Please link and verify your {platformNames.join(' and ')} account{platformNames.length > 1 ? 's' : ''} before joining.
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-3 items-center">
-              <Button onClick={() => navigate('/settings')}>
-                Go to Settings to Verify
-              </Button>
-              <Button variant="ghost" onClick={() => navigate('/battles')}>
-                <IconArrowLeft className="h-4 w-4 mr-2" />
-                Back to Battles
-              </Button>
+            <CardContent className="space-y-4">
+              {battleInfo && (
+                <div className="bg-muted/50 p-4 rounded-lg">
+                  <p className="font-medium">{battleInfo.title}</p>
+                  <div className="flex gap-2 mt-2">
+                    {battleInfo.platforms?.map(p => (
+                      <Badge 
+                        key={p} 
+                        variant="outline"
+                        className={missingPlatforms.includes(p) ? 'border-amber-500 text-amber-600' : ''}
+                      >
+                        {p === 'codeforces' && <IconCode className="h-3 w-3 mr-1" />}
+                        {p === 'leetcode' && <IconBrandLeetcode className="h-3 w-3 mr-1" />}
+                        {p === 'leetcode' ? 'LeetCode' : 'Codeforces'}
+                        {missingPlatforms.includes(p) && ' (Not verified)'}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {missingPlatforms.includes('leetcode') && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg text-sm">
+                  <p className="font-medium text-amber-800 dark:text-amber-200">LeetCode Extension Required</p>
+                  <p className="text-amber-700 dark:text-amber-300 mt-1">
+                    This battle includes LeetCode problems. You'll need to sync your LeetCode submissions using the CP Focus extension before joining.
+                  </p>
+                </div>
+              )}
+              
+              <div className="flex flex-col gap-3 items-center pt-4">
+                <Button onClick={() => navigate('/settings')} className="w-full">
+                  Go to Settings to Verify
+                </Button>
+                <Button variant="ghost" onClick={() => navigate('/battles')}>
+                  <IconArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Battles
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
