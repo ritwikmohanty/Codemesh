@@ -94,8 +94,19 @@ const BattlesPage = () => {
             <IconTrophy className="h-4 w-4 text-muted-foreground" />
             <span>{battle.numProblems} problems</span>
           </div>
+          <div className="col-span-2 flex flex-wrap gap-1">
+            {(battle.platforms || ['codeforces']).map(p => (
+              <Badge 
+                key={p} 
+                variant="outline" 
+                className={`text-xs ${p === 'leetcode' ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20' : 'bg-orange-50 text-orange-700 dark:bg-orange-900/20'}`}
+              >
+                {p === 'leetcode' ? 'LeetCode' : 'Codeforces'}
+              </Badge>
+            ))}
+          </div>
           <div className="col-span-2 text-muted-foreground">
-            Rating: {battle.minRating} - {battle.maxRating} | {battle.durationMinutes} min
+            {battle.durationMinutes} min
           </div>
         </div>
       </CardContent>
@@ -109,7 +120,7 @@ const BattlesPage = () => {
       </div>
       <h3 className="text-xl font-semibold mb-2">No battles yet</h3>
       <p className="text-muted-foreground mb-6 max-w-md">
-        Create a battle to compete with friends on Codeforces problems, or join an existing battle using a link.
+        Create a battle to compete with friends on Codeforces and LeetCode problems, or join an existing battle using a link.
       </p>
       <div className="flex gap-3">
         <Button onClick={() => navigate('/battles/create')}>

@@ -61,6 +61,7 @@ const BattlePage = () => {
   const [participants, setParticipants] = useState([]);
   const [problems, setProblems] = useState([]);
   const [standings, setStandings] = useState([]);
+  const [problemStats, setProblemStats] = useState({}); // Solve counts per problem
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -74,19 +75,37 @@ const BattlePage = () => {
   
   // Countdown state
   const [timeRemaining, setTimeRemaining] = useState(null);
+  
+  // Track last fetch time to prevent rapid refetches
+  const [lastFetchTime, setLastFetchTime] = useState(0);
+  const [previousStatus, setPreviousStatus] = useState(null);
 
-  const fetchBattleData = useCallback(async () => {
+  const fetchBattleData = useCallback(async (force = false) => {
+    // Prevent rapid refetches (debounce 5 seconds unless forced)
+    const now = Date.now();
+    if (!force && now - lastFetchTime < 5000) {
+      return;
+    }
+    setLastFetchTime(now);
+    
     try {
       setLoading(true);
       const battleResponse = await getBattle(battleId);
-      setBattle(battleResponse.data);
+      const newBattle = battleResponse.data;
+      
+      // Track status changes
+      if (previousStatus && previousStatus !== newBattle.status) {
+        // Status updated, trigger any necessary side effects
+      }
+      setPreviousStatus(newBattle.status);
+      setBattle(newBattle);
       
       // Fetch participants
       const participantsResponse = await getBattleParticipants(battleId);
       setParticipants(participantsResponse.data || []);
       
       // Fetch problems and standings if battle has started
-      if (battleResponse.data.status !== 'pending') {
+      if (newBattle.status !== 'pending') {
         try {
           const problemsResponse = await getBattleProblems(battleId);
           setProblems(problemsResponse.data || []);
@@ -97,9 +116,16 @@ const BattlePage = () => {
         try {
           const standingsResponse = await getBattleStandings(battleId);
           setStandings(standingsResponse.data || []);
+          // Also get problem stats (solve counts)
+          setProblemStats(standingsResponse.problemStats || {});
         } catch (e) {
           console.error('Failed to fetch standings:', e);
         }
+      } else {
+        // Clear problems and standings if battle is pending
+        setProblems([]);
+        setStandings([]);
+        setProblemStats({});
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch battle');
@@ -107,17 +133,19 @@ const BattlePage = () => {
     } finally {
       setLoading(false);
     }
-  }, [battleId]);
+  }, [battleId, lastFetchTime, previousStatus]);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      fetchBattleData();
+      fetchBattleData(true); // Force initial fetch
     }
-  }, [authLoading, isAuthenticated, fetchBattleData]);
+  }, [authLoading, isAuthenticated, battleId]);
 
-  // Update countdown timer
+  // Update countdown timer with improved transition handling
   useEffect(() => {
     if (!battle) return;
+    
+    let transitionTimeout = null;
     
     const updateTimer = () => {
       const now = new Date();
@@ -127,24 +155,45 @@ const BattlePage = () => {
       if (battle.status === 'pending') {
         const diff = startTime - now;
         if (diff <= 0) {
-          fetchBattleData(); // Refresh when battle should start
+          // Battle should have started - wait a bit and then poll
+          // This prevents rapid refetching during the transition period
+          if (!transitionTimeout) {
+            transitionTimeout = setTimeout(() => {
+              fetchBattleData(true);
+              transitionTimeout = null;
+            }, 3000); // Wait 3 seconds before checking
+          }
+          setTimeRemaining(0);
         } else {
           setTimeRemaining(diff);
         }
       } else if (battle.status === 'in_progress') {
         const diff = endTime - now;
         if (diff <= 0) {
-          fetchBattleData(); // Refresh when battle should end
+          // Battle should have ended - wait and poll
+          if (!transitionTimeout) {
+            transitionTimeout = setTimeout(() => {
+              fetchBattleData(true);
+              transitionTimeout = null;
+            }, 3000);
+          }
+          setTimeRemaining(0);
         } else {
           setTimeRemaining(diff);
         }
+      } else {
+        setTimeRemaining(null);
       }
     };
     
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
-  }, [battle, fetchBattleData]);
+    
+    return () => {
+      clearInterval(interval);
+      if (transitionTimeout) clearTimeout(transitionTimeout);
+    };
+  }, [battle]);
 
   // Refresh cooldown timer
   useEffect(() => {
@@ -153,6 +202,27 @@ const BattlePage = () => {
       return () => clearTimeout(timer);
     }
   }, [refreshCooldown]);
+
+  // Auto-refresh standings every 30 seconds during in_progress battles
+  useEffect(() => {
+    if (battle?.status !== 'in_progress') return;
+    
+    const autoRefreshInterval = setInterval(async () => {
+      try {
+        // Trigger a submission poll on the server
+        await refreshSubmissions(battleId);
+        
+        // Fetch updated standings
+        const standingsResponse = await getBattleStandings(battleId);
+        setStandings(standingsResponse.data || []);
+        setProblemStats(standingsResponse.problemStats || {});
+      } catch (e) {
+        console.error('Auto-refresh failed:', e);
+      }
+    }, 30000); // Every 30 seconds
+    
+    return () => clearInterval(autoRefreshInterval);
+  }, [battle?.status, battleId]);
 
   const formatTime = (ms) => {
     if (ms <= 0) return '00:00:00';
@@ -385,10 +455,46 @@ const BattlePage = () => {
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
-                <p className="text-sm text-muted-foreground mb-1">Rating Range</p>
-                <p className="font-semibold">{battle.minRating} - {battle.maxRating}</p>
+                <p className="text-sm text-muted-foreground mb-1">Platforms</p>
+                <div className="flex flex-wrap justify-center gap-1">
+                  {(battle.platforms || ['codeforces']).map(p => (
+                    <Badge key={p} variant="outline" className="text-xs capitalize">{p}</Badge>
+                  ))}
+                </div>
               </CardContent>
             </Card>
+          </div>
+          
+          {/* Platform-specific settings */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            {(battle.platforms || ['codeforces']).includes('codeforces') && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">Codeforces</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Rating Range: <span className="font-medium">{battle.minRating} - {battle.maxRating}</span></p>
+                  {battle.problemsPerPlatform?.codeforces && (
+                    <p className="text-sm text-muted-foreground">Problems: <span className="font-medium">{battle.problemsPerPlatform.codeforces}</span></p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+            {(battle.platforms || []).includes('leetcode') && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">LeetCode</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Difficulty: <span className="font-medium">{(battle.leetcodeDifficulty || []).join(', ') || 'All'}</span>
+                  </p>
+                  {battle.problemsPerPlatform?.leetcode && (
+                    <p className="text-sm text-muted-foreground">Problems: <span className="font-medium">{battle.problemsPerPlatform.leetcode}</span></p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Action Buttons */}
@@ -538,38 +644,99 @@ const BattlePage = () => {
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle>Problems</CardTitle>
-                <CardDescription>Solve these problems on Codeforces</CardDescription>
+                <CardDescription>Solve these problems to earn points (ICPC style: 20 min penalty per wrong attempt)</CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-16">#</TableHead>
+                      <TableHead className="w-20">Status</TableHead>
+                      <TableHead className="w-24">Platform</TableHead>
                       <TableHead>Problem</TableHead>
-                      <TableHead className="w-24">Rating</TableHead>
+                      <TableHead className="w-24">Difficulty</TableHead>
+                      <TableHead className="w-20 text-center">Solved</TableHead>
                       <TableHead className="w-24">Link</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {problems.map((problem, index) => (
-                      <TableRow key={`${problem.contestId}${problem.index}`}>
-                        <TableCell className="font-medium">{String.fromCharCode(65 + index)}</TableCell>
-                        <TableCell>{problem.name || `${problem.contestId}${problem.index}`}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{problem.rating}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <a 
-                            href={`https://codeforces.com/problemset/problem/${problem.contestId}/${problem.index}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline flex items-center gap-1"
-                          >
-                            Solve <IconExternalLink className="h-3 w-3" />
-                          </a>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {problems.map((problem, index) => {
+                      const isLeetCode = problem.platform === 'leetcode';
+                      const problemKey = isLeetCode 
+                        ? problem.titleSlug 
+                        : `${problem.contestId}${problem.index}`;
+                      const problemName = isLeetCode
+                        ? problem.title
+                        : (problem.name || problemKey);
+                      const difficulty = isLeetCode
+                        ? problem.difficulty
+                        : problem.rating;
+                      const link = isLeetCode
+                        ? `https://leetcode.com/problems/${problem.titleSlug}/`
+                        : `https://codeforces.com/problemset/problem/${problem.contestId}/${problem.index}`;
+                      
+                      // Check if current user solved this problem
+                      const currentUserStanding = standings.find(s => 
+                        s.user?._id === user?._id || s.userId === user?._id
+                      );
+                      const userProblemData = currentUserStanding?.problemData?.[problemKey];
+                      const userSolved = userProblemData?.solved;
+                      
+                      // Get solve count for this problem
+                      const solveCount = problemStats[problemKey] || 0;
+                      
+                      return (
+                        <TableRow key={problemKey} className={userSolved ? 'bg-green-50 dark:bg-green-900/10' : ''}>
+                          <TableCell className="font-medium">{String.fromCharCode(65 + index)}</TableCell>
+                          <TableCell>
+                            {userSolved ? (
+                              <div className="flex items-center gap-1 text-green-600">
+                                <IconCheck className="h-4 w-4" />
+                                <span className="text-xs">
+                                  {userProblemData.solveTimeMinutes}m
+                                  {userProblemData.wrongSubmissions > 0 && (
+                                    <span className="text-orange-500"> (+{userProblemData.wrongSubmissions})</span>
+                                  )}
+                                </span>
+                              </div>
+                            ) : userProblemData?.wrongSubmissions > 0 ? (
+                              <span className="text-red-500 text-xs">-{userProblemData.wrongSubmissions}</span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant="outline" 
+                              className={isLeetCode 
+                                ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' 
+                                : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'}
+                            >
+                              {isLeetCode ? 'LeetCode' : 'Codeforces'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{problemName}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{difficulty}</Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="text-sm font-medium text-muted-foreground">
+                              {solveCount}/{participants.length}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <a 
+                              href={link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline flex items-center gap-1"
+                            >
+                              Solve <IconExternalLink className="h-3 w-3" />
+                            </a>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -582,7 +749,7 @@ const BattlePage = () => {
               <CardHeader>
                 <CardTitle>Standings</CardTitle>
                 <CardDescription>
-                  {battle.status === 'in_progress' ? 'Live standings' : 'Final standings'}
+                  {battle.status === 'in_progress' ? 'Live standings (ICPC style: sorted by solved, then penalty)' : 'Final standings'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -592,47 +759,73 @@ const BattlePage = () => {
                       <TableHead className="w-16">Rank</TableHead>
                       <TableHead>Participant</TableHead>
                       <TableHead className="w-24 text-center">Solved</TableHead>
-                      <TableHead className="w-24 text-center">Penalty</TableHead>
-                      {problems.map((_, index) => (
-                        <TableHead key={index} className="w-20 text-center">
-                          {String.fromCharCode(65 + index)}
-                        </TableHead>
-                      ))}
+                      <TableHead className="w-28 text-center">Penalty (min)</TableHead>
+                      {problems.map((problem, index) => {
+                        const isLeetCode = problem.platform === 'leetcode';
+                        const problemKey = isLeetCode ? problem.titleSlug : `${problem.contestId}${problem.index}`;
+                        const solveCount = problemStats[problemKey] || 0;
+                        return (
+                          <TableHead key={index} className="w-24 text-center">
+                            <div className="flex flex-col items-center">
+                              <span>{String.fromCharCode(65 + index)}</span>
+                              <span className={`text-xs ${isLeetCode ? 'text-yellow-600' : 'text-orange-600'}`}>
+                                {isLeetCode ? 'LC' : 'CF'}
+                              </span>
+                              <span className="text-xs text-muted-foreground">{solveCount}✓</span>
+                            </div>
+                          </TableHead>
+                        );
+                      })}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {standings.map((entry, rank) => (
-                      <TableRow key={entry.user?._id || rank}>
-                        <TableCell className="font-bold">
-                          {rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : rank + 1}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{entry.user?.username || entry.codeforcesHandle}</span>
-                            <span className="text-xs text-muted-foreground">({entry.codeforcesHandle})</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center font-semibold">{entry.solved}</TableCell>
-                        <TableCell className="text-center text-muted-foreground">{entry.penalty}</TableCell>
-                        {problems.map((problem) => {
-                          const key = `${problem.contestId}${problem.index}`;
-                          const data = entry.problemData?.[key];
-                          return (
-                            <TableCell key={key} className="text-center">
-                              {data?.solved ? (
-                                <span className="text-green-600 font-medium">
-                                  +{data.wrongSubmissions > 0 ? data.wrongSubmissions : ''}
-                                </span>
-                              ) : data?.wrongSubmissions > 0 ? (
-                                <span className="text-red-500">-{data.wrongSubmissions}</span>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    ))}
+                    {standings.map((entry, rank) => {
+                      const isCurrentUser = entry.user?._id === user?._id || entry.userId === user?._id;
+                      return (
+                        <TableRow key={entry.user?._id || rank} className={isCurrentUser ? 'bg-blue-50 dark:bg-blue-900/20' : ''}>
+                          <TableCell className="font-bold">
+                            {rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : rank + 1}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span className={`font-medium ${isCurrentUser ? 'text-blue-600 dark:text-blue-400' : ''}`}>
+                                {entry.user?.username || entry.codeforcesHandle}
+                                {isCurrentUser && ' (You)'}
+                              </span>
+                              <div className="flex gap-1 text-xs text-muted-foreground">
+                                {entry.codeforcesHandle && <span>(CF: {entry.codeforcesHandle})</span>}
+                                {entry.leetcodeHandle && <span>(LC: {entry.leetcodeHandle})</span>}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center font-semibold text-lg">{entry.solved}</TableCell>
+                          <TableCell className="text-center font-mono">{entry.penalty}</TableCell>
+                          {problems.map((problem) => {
+                            const isLeetCode = problem.platform === 'leetcode';
+                            const key = isLeetCode 
+                              ? problem.titleSlug 
+                              : `${problem.contestId}${problem.index}`;
+                            const data = entry.problemData?.[key];
+                            return (
+                              <TableCell key={key} className="text-center">
+                                {data?.solved ? (
+                                  <div className="flex flex-col items-center">
+                                    <span className="text-green-600 font-medium">
+                                      +{data.wrongSubmissions > 0 ? data.wrongSubmissions : ''}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">{data.solveTimeMinutes}m</span>
+                                  </div>
+                                ) : data?.wrongSubmissions > 0 ? (
+                                  <span className="text-red-500">-{data.wrongSubmissions}</span>
+                                ) : (
+                                  <span className="text-muted-foreground">-</span>
+                                )}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </CardContent>

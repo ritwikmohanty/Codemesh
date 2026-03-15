@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 /**
  * Battle Submission Schema
- * Tracks submissions made during a battle
+ * Tracks submissions made during a battle (supports both Codeforces and LeetCode)
  */
 const battleSubmissionSchema = new mongoose.Schema({
   battle: {
@@ -15,38 +15,39 @@ const battleSubmissionSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  // Codeforces submission ID
-  cfSubmissionId: {
+  // Platform identifier
+  platform: {
+    type: String,
+    enum: ['codeforces', 'leetcode'],
+    required: true
+  },
+  // Unique submission ID (CF ID or LC timestamp+slug)
+  submissionId: {
     type: String,
     required: true
+  },
+  // Codeforces-specific fields
+  cfSubmissionId: {
+    type: String,
+    default: null
   },
   contestId: {
     type: Number,
-    required: true
+    default: null
   },
   problemIndex: {
     type: String,
-    required: true
+    default: null
   },
+  // LeetCode-specific fields
+  titleSlug: {
+    type: String,
+    default: null
+  },
+  // Common fields
   verdict: {
     type: String,
-    required: true,
-    enum: [
-      'OK',
-      'WRONG_ANSWER',
-      'TIME_LIMIT_EXCEEDED',
-      'MEMORY_LIMIT_EXCEEDED',
-      'RUNTIME_ERROR',
-      'COMPILATION_ERROR',
-      'PRESENTATION_ERROR',
-      'IDLENESS_LIMIT_EXCEEDED',
-      'SECURITY_VIOLATED',
-      'CRASHED',
-      'SKIPPED',
-      'CHALLENGED',
-      'PARTIAL',
-      'TESTING'
-    ]
+    required: true
   },
   passedTestCount: {
     type: Number,
@@ -60,7 +61,7 @@ const battleSubmissionSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  // Raw submission data from Codeforces
+  // Raw submission data from API
   rawData: {
     type: mongoose.Schema.Types.Mixed,
     default: {}
@@ -73,12 +74,19 @@ const battleSubmissionSchema = new mongoose.Schema({
 
 // Compound index for efficient queries
 battleSubmissionSchema.index({ battle: 1, user: 1 });
+battleSubmissionSchema.index({ battle: 1, platform: 1 });
 battleSubmissionSchema.index({ battle: 1, contestId: 1, problemIndex: 1 });
-battleSubmissionSchema.index({ cfSubmissionId: 1 }, { unique: true });
+battleSubmissionSchema.index({ battle: 1, titleSlug: 1 });
+battleSubmissionSchema.index({ submissionId: 1, battle: 1 }, { unique: true });
 
 // Method to check if submission is accepted
 battleSubmissionSchema.methods.isAccepted = function() {
-  return this.verdict === 'OK';
+  if (this.platform === 'codeforces') {
+    return this.verdict === 'OK';
+  } else if (this.platform === 'leetcode') {
+    return this.verdict === 'Accepted';
+  }
+  return false;
 };
 
 export default mongoose.model('BattleSubmission', battleSubmissionSchema);

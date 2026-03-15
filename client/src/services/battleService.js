@@ -144,6 +144,25 @@ export const getServerTime = async () => {
   return response.data;
 };
 
+/**
+ * Get battle info by join token (to check platform requirements before joining)
+ * @param {string} joinToken - Battle join token
+ * @returns {Promise<Object>} Battle info
+ */
+export const getBattleByJoinToken = async (joinToken) => {
+  const response = await apiClient.get(`/battles/info/${joinToken}`);
+  return response.data;
+};
+
+/**
+ * Check if user has synced LeetCode submissions via CP Extension
+ * @returns {Promise<Object>} Sync status
+ */
+export const checkLeetCodeSyncStatus = async () => {
+  const response = await apiClient.get('/battles/check-leetcode-sync');
+  return response.data;
+};
+
 export default {
   getUserBattles,
   getBattle,
@@ -158,4 +177,6 @@ export default {
   endBattle,
   cancelBattle,
   getServerTime,
+  getBattleByJoinToken,
+  checkLeetCodeSyncStatus,
 };

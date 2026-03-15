@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Select,
   SelectContent,
@@ -13,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { IconArrowLeft, IconSwords } from '@tabler/icons-react';
+import { IconArrowLeft, IconSwords, IconBrandLeetcode, IconCode } from '@tabler/icons-react';
 import { createBattle } from '@/services/battleService';
 import { toast } from 'sonner';
 
@@ -29,6 +30,8 @@ const CreateBattlePage = () => {
     minRating: 800,
     maxRating: 1400,
     numProblems: 3,
+    platforms: ['codeforces'],
+    leetcodeDifficulty: ['Easy', 'Medium'],
   });
 
   const [errors, setErrors] = useState({});
@@ -62,16 +65,31 @@ const CreateBattlePage = () => {
       newErrors.durationMinutes = 'Duration must be between 10 and 300 minutes';
     }
     
-    if (formData.minRating < 800 || formData.minRating > 3500) {
-      newErrors.minRating = 'Min rating must be between 800 and 3500';
+    // Validate platforms
+    if (formData.platforms.length === 0) {
+      newErrors.platforms = 'At least one platform must be selected';
     }
     
-    if (formData.maxRating < 800 || formData.maxRating > 3500) {
-      newErrors.maxRating = 'Max rating must be between 800 and 3500';
+    // Validate Codeforces rating if selected
+    if (formData.platforms.includes('codeforces')) {
+      if (formData.minRating < 800 || formData.minRating > 3500) {
+        newErrors.minRating = 'Min rating must be between 800 and 3500';
+      }
+      
+      if (formData.maxRating < 800 || formData.maxRating > 3500) {
+        newErrors.maxRating = 'Max rating must be between 800 and 3500';
+      }
+      
+      if (formData.minRating > formData.maxRating) {
+        newErrors.maxRating = 'Max rating must be greater than min rating';
+      }
     }
     
-    if (formData.minRating > formData.maxRating) {
-      newErrors.maxRating = 'Max rating must be greater than min rating';
+    // Validate LeetCode difficulty if selected
+    if (formData.platforms.includes('leetcode')) {
+      if (formData.leetcodeDifficulty.length === 0) {
+        newErrors.leetcodeDifficulty = 'At least one difficulty must be selected';
+      }
     }
     
     if (formData.numProblems < 1 || formData.numProblems > 10) {
@@ -93,14 +111,26 @@ const CreateBattlePage = () => {
     setIsSubmitting(true);
     
     try {
-      const response = await createBattle({
+      const battleData = {
         title: formData.title.trim(),
         startTime: new Date(formData.startTime).toISOString(),
         durationMinutes: parseInt(formData.durationMinutes),
-        minRating: parseInt(formData.minRating),
-        maxRating: parseInt(formData.maxRating),
         numProblems: parseInt(formData.numProblems),
-      });
+        platforms: formData.platforms,
+      };
+      
+      // Add Codeforces-specific fields
+      if (formData.platforms.includes('codeforces')) {
+        battleData.minRating = parseInt(formData.minRating);
+        battleData.maxRating = parseInt(formData.maxRating);
+      }
+      
+      // Add LeetCode-specific fields
+      if (formData.platforms.includes('leetcode')) {
+        battleData.leetcodeDifficulty = formData.leetcodeDifficulty;
+      }
+      
+      const response = await createBattle(battleData);
       
       toast.success('Battle created successfully!');
       navigate(`/battle/${response.data.battleId}`);
@@ -118,14 +148,39 @@ const CreateBattlePage = () => {
     }
   };
 
-  // Check for verified Codeforces handle
+  const togglePlatform = (platform) => {
+    setFormData(prev => {
+      const platforms = prev.platforms.includes(platform)
+        ? prev.platforms.filter(p => p !== platform)
+        : [...prev.platforms, platform];
+      return { ...prev, platforms };
+    });
+  };
+
+  const toggleDifficulty = (difficulty) => {
+    setFormData(prev => {
+      const leetcodeDifficulty = prev.leetcodeDifficulty.includes(difficulty)
+        ? prev.leetcodeDifficulty.filter(d => d !== difficulty)
+        : [...prev.leetcodeDifficulty, difficulty];
+      return { ...prev, leetcodeDifficulty };
+    });
+  };
+
+  // Check for verified handles
   const hasCodeforcesHandle = user?.verifiedPlatforms?.some(
     p => p.platform === 'codeforces'
   );
   
-  const codeforcesHandle = user?.verifiedPlatforms?.find(
-    p => p.platform === 'codeforces'
+  const hasLeetcodeHandle = user?.verifiedPlatforms?.some(
+    p => p.platform === 'leetcode'
+  );
+  
+  const leetcodeHandle = user?.verifiedPlatforms?.find(
+    p => p.platform === 'leetcode'
   )?.handle;
+
+  // Check if user can create battle (needs at least one verified platform)
+  const hasAnyVerifiedPlatform = hasCodeforcesHandle || hasLeetcodeHandle;
 
   if (authLoading) {
     return (
@@ -159,15 +214,15 @@ const CreateBattlePage = () => {
     );
   }
 
-  if (!hasCodeforcesHandle) {
+  if (!hasAnyVerifiedPlatform) {
     return (
       <AppSidebar variant="inset">
         <div className="flex-1 flex items-center justify-center p-6">
           <Card className="max-w-md w-full">
             <CardHeader className="text-center">
-              <CardTitle>Verified Codeforces Account Required</CardTitle>
+              <CardTitle>Verified Platform Required</CardTitle>
               <CardDescription>
-                You need to link and verify your Codeforces account before creating a battle.
+                You need to link and verify at least one platform (Codeforces or LeetCode) before creating a battle.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3 items-center">
@@ -212,11 +267,56 @@ const CreateBattlePage = () => {
                 Battle Configuration
               </CardTitle>
               <CardDescription>
-                Configure the settings for your battle. Problems will be randomly selected from Codeforces.
+                Configure the settings for your battle. Problems will be randomly selected from the chosen platforms.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Platform Selection */}
+                <div className="space-y-3">
+                  <Label>Platforms</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Select the platforms to include problems from. You can only select platforms you have verified.
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="platform-codeforces"
+                        checked={formData.platforms.includes('codeforces')}
+                        onCheckedChange={() => togglePlatform('codeforces')}
+                        disabled={!hasCodeforcesHandle}
+                      />
+                      <Label 
+                        htmlFor="platform-codeforces" 
+                        className={`flex items-center gap-2 cursor-pointer ${!hasCodeforcesHandle ? 'opacity-50' : ''}`}
+                      >
+                        <IconCode className="h-4 w-4" />
+                        Codeforces
+                        {!hasCodeforcesHandle && <span className="text-xs text-muted-foreground">(Not verified)</span>}
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="platform-leetcode"
+                        checked={formData.platforms.includes('leetcode')}
+                        onCheckedChange={() => togglePlatform('leetcode')}
+                        disabled={!hasLeetcodeHandle}
+                      />
+                      <Label 
+                        htmlFor="platform-leetcode" 
+                        className={`flex items-center gap-2 cursor-pointer ${!hasLeetcodeHandle ? 'opacity-50' : ''}`}
+                      >
+                        <IconBrandLeetcode className="h-4 w-4" />
+                        LeetCode
+                        {!hasLeetcodeHandle && <span className="text-xs text-muted-foreground">(Not verified)</span>}
+                      </Label>
+                    </div>
+                  </div>
+                  {errors.platforms && (
+                    <p className="text-sm text-destructive">{errors.platforms}</p>
+                  )}
+                </div>
+
                 {/* Title */}
                 <div className="space-y-2">
                   <Label htmlFor="title">Battle Title</Label>
@@ -271,52 +371,111 @@ const CreateBattlePage = () => {
                   </div>
                 </div>
 
-                {/* Rating Range */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="minRating">Minimum Rating</Label>
-                    <Select
-                      value={formData.minRating.toString()}
-                      onValueChange={(value) => handleChange('minRating', parseInt(value))}
-                    >
-                      <SelectTrigger className={errors.minRating ? 'border-destructive' : ''}>
-                        <SelectValue placeholder="Select min rating" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000].map(rating => (
-                          <SelectItem key={rating} value={rating.toString()}>{rating}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.minRating && (
-                      <p className="text-sm text-destructive">{errors.minRating}</p>
+                {/* Codeforces Rating Range - only show if Codeforces is selected */}
+                {formData.platforms.includes('codeforces') && (
+                  <div className="space-y-3">
+                    <Label className="flex items-center gap-2">
+                      <IconCode className="h-4 w-4" />
+                      Codeforces Rating Range
+                    </Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="minRating" className="text-sm text-muted-foreground">Minimum Rating</Label>
+                        <Select
+                          value={formData.minRating.toString()}
+                          onValueChange={(value) => handleChange('minRating', parseInt(value))}
+                        >
+                          <SelectTrigger className={errors.minRating ? 'border-destructive' : ''}>
+                            <SelectValue placeholder="Select min rating" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000].map(rating => (
+                              <SelectItem key={rating} value={rating.toString()}>{rating}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {errors.minRating && (
+                          <p className="text-sm text-destructive">{errors.minRating}</p>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="maxRating" className="text-sm text-muted-foreground">Maximum Rating</Label>
+                        <Select
+                          value={formData.maxRating.toString()}
+                          onValueChange={(value) => handleChange('maxRating', parseInt(value))}
+                        >
+                          <SelectTrigger className={errors.maxRating ? 'border-destructive' : ''}>
+                            <SelectValue placeholder="Select max rating" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2100, 2200, 2300, 2400].map(rating => (
+                              <SelectItem key={rating} value={rating.toString()}>{rating}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {errors.maxRating && (
+                          <p className="text-sm text-destructive">{errors.maxRating}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* LeetCode Difficulty - only show if LeetCode is selected */}
+                {formData.platforms.includes('leetcode') && (
+                  <div className="space-y-3">
+                    <Label className="flex items-center gap-2">
+                      <IconBrandLeetcode className="h-4 w-4" />
+                      LeetCode Difficulty
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Select the difficulty levels for LeetCode problems.
+                    </p>
+                    <div className="flex flex-wrap gap-4">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="difficulty-easy"
+                          checked={formData.leetcodeDifficulty.includes('Easy')}
+                          onCheckedChange={() => toggleDifficulty('Easy')}
+                        />
+                        <Label htmlFor="difficulty-easy" className="cursor-pointer text-green-600">
+                          Easy
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="difficulty-medium"
+                          checked={formData.leetcodeDifficulty.includes('Medium')}
+                          onCheckedChange={() => toggleDifficulty('Medium')}
+                        />
+                        <Label htmlFor="difficulty-medium" className="cursor-pointer text-yellow-600">
+                          Medium
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="difficulty-hard"
+                          checked={formData.leetcodeDifficulty.includes('Hard')}
+                          onCheckedChange={() => toggleDifficulty('Hard')}
+                        />
+                        <Label htmlFor="difficulty-hard" className="cursor-pointer text-red-600">
+                          Hard
+                        </Label>
+                      </div>
+                    </div>
+                    {errors.leetcodeDifficulty && (
+                      <p className="text-sm text-destructive">{errors.leetcodeDifficulty}</p>
                     )}
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="maxRating">Maximum Rating</Label>
-                    <Select
-                      value={formData.maxRating.toString()}
-                      onValueChange={(value) => handleChange('maxRating', parseInt(value))}
-                    >
-                      <SelectTrigger className={errors.maxRating ? 'border-destructive' : ''}>
-                        <SelectValue placeholder="Select max rating" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2100, 2200, 2300, 2400].map(rating => (
-                          <SelectItem key={rating} value={rating.toString()}>{rating}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.maxRating && (
-                      <p className="text-sm text-destructive">{errors.maxRating}</p>
-                    )}
-                  </div>
-                </div>
+                )}
 
                 {/* Number of Problems */}
                 <div className="space-y-2">
                   <Label htmlFor="numProblems">Number of Problems</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Problems will be split evenly between selected platforms.
+                  </p>
                   <Select
                     value={formData.numProblems.toString()}
                     onValueChange={(value) => handleChange('numProblems', parseInt(value))}
@@ -339,7 +498,7 @@ const CreateBattlePage = () => {
                 <Button 
                   type="submit" 
                   className="w-full" 
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || formData.platforms.length === 0}
                 >
                   {isSubmitting ? 'Creating Battle...' : 'Create Battle'}
                 </Button>

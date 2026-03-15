@@ -13,18 +13,26 @@ import {
   startBattle,
   endBattle,
   cancelBattle,
-  getServerTime
+  getServerTime,
+  getBattleByJoinToken,
+  checkLeetCodeSyncStatus
 } from '../controllers/battleController.js';
 
 const router = express.Router();
 
 /**
  * Battle Routes
- * All routes require authentication except server time
+ * All routes require authentication except server time and battle info by token
  */
 
 // Get server time (public - for client sync)
 router.get('/battles/time', getServerTime);
+
+// Get battle info by join token (to check platforms before joining)
+router.get('/battles/info/:joinToken', authenticateToken, getBattleByJoinToken);
+
+// Check LeetCode sync status for a user
+router.get('/battles/check-leetcode-sync', authenticateToken, checkLeetCodeSyncStatus);
 
 // Create a new battle
 router.post('/battles', authenticateToken, createBattle);

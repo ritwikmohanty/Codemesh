@@ -31,23 +31,40 @@ const battleSchema = new mongoose.Schema({
     min: 10,
     max: 300
   },
+  // Platforms included in this battle
+  platforms: [{
+    type: String,
+    enum: ['codeforces', 'leetcode'],
+    default: 'codeforces'
+  }],
+  // Codeforces-specific settings
   minRating: {
     type: Number,
-    required: true,
     min: 800,
-    max: 3500
+    max: 3500,
+    default: 800
   },
   maxRating: {
     type: Number,
-    required: true,
     min: 800,
-    max: 3500
+    max: 3500,
+    default: 1400
   },
+  // LeetCode-specific settings
+  leetcodeDifficulty: [{
+    type: String,
+    enum: ['Easy', 'Medium', 'Hard']
+  }],
   numProblems: {
     type: Number,
     required: true,
     min: 1,
     max: 10
+  },
+  // Track problems per platform
+  problemsPerPlatform: {
+    codeforces: { type: Number, default: 0 },
+    leetcode: { type: Number, default: 0 }
   },
   joinToken: {
     type: String,
@@ -63,36 +80,74 @@ const battleSchema = new mongoose.Schema({
     },
     codeforcesHandle: {
       type: String,
-      required: true
+      default: null
+    },
+    leetcodeHandle: {
+      type: String,
+      default: null
     },
     joinedAt: {
       type: Date,
       default: Date.now
     }
   }],
-  // Problems selected for this battle
+  // Problems selected for this battle (supports both platforms)
   problems: [{
-    contestId: {
-      type: Number,
-      required: true
-    },
-    index: {
+    // Common fields
+    platform: {
       type: String,
+      enum: ['codeforces', 'leetcode'],
       required: true
     },
     name: {
       type: String,
       default: ''
     },
-    rating: {
-      type: Number,
-      required: true
-    },
     addedAt: {
       type: Date,
       default: Date.now
+    },
+    // Codeforces-specific fields
+    contestId: {
+      type: Number,
+      default: null
+    },
+    index: {
+      type: String,
+      default: null
+    },
+    rating: {
+      type: Number,
+      default: null
+    },
+    // LeetCode-specific fields
+    titleSlug: {
+      type: String,
+      default: null
+    },
+    title: {
+      type: String,
+      default: null
+    },
+    difficulty: {
+      type: String,
+      enum: ['Easy', 'Medium', 'Hard', null],
+      default: null
+    },
+    frontendId: {
+      type: String,
+      default: null
     }
   }],
+  // Cache last known submission timestamps for efficient polling
+  lastSubmissionCache: {
+    type: Map,
+    of: {
+      codeforces: { type: Number, default: 0 },
+      leetcode: { type: Number, default: 0 }
+    },
+    default: new Map()
+  },
   createdAt: {
     type: Date,
     default: Date.now
