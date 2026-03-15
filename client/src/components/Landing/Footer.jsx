@@ -153,7 +153,7 @@ const BrandingFooter = () => {
               <div className="flex items-center gap-1 pl-0 sm:pl-6 sm:border-l border-border/50">
                 <span>Made with</span>
                 <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 animate-pulse" />
-                <span>by Ritwik, Shashank & Rishi</span>
+                <span>by Ritwik Mohanty</span>
               </div>
             </div>
           </div>
